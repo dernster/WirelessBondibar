@@ -7,6 +7,7 @@ class BondibarManager{
 public:
   BondibarManager();
   void sendData(byte* data, int len);
+  void sendData(byte* data, int offset, int len);
 };
 
 extern BondibarManager Bondibar;
