@@ -1,6 +1,11 @@
 #include "Arduino.h"
 #include <ESP8266WiFi.h>
 #include "Configuration.h" 
+#include <vector>
+#include "Dictionary.h"
+using namespace std;
+
+#define LED 2
 
 #define SINGLETON_H(ClassName)\
 private:\
@@ -19,6 +24,14 @@ ClassName* ClassName::getInstance(){\
 
 #define singleton(ClassName) ClassName::getInstance()
 
+//
+//#define iterateMap(i,mapVar)\
+//for(std::map<String,String>::iterator i=mapVar.begin(); i!=mapVar.end(); ++i)
+    
+void flashLed(int onMs, int offMs, int times);
 void printWifiStatus();
 String ipToString(IPAddress ip);
+IPAddress stringToIP(String ipStr);
 void connectToWifi();
+vector<String> splitString(String string, char delimiter);
+Dictionary parseParameters(String params);

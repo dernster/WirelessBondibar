@@ -3,15 +3,19 @@
 #include "Configuration.h"
 #include <WiFiUdp.h>
 
-class ConfigurationServer{
+class ConfigurationServer : public ConfigurationObserver{
 SINGLETON_H(ConfigurationServer)
 private:
   WiFiUDP udp;
   Configuration* configuration;
   char* buffer;
-  void becomeVisibleToNetwork();
+  void registerInServer();
 public:
   ConfigurationServer();
   bool incomingCommand();
   void processCommand();
+  void obtainServerEndpoint();
+  void configurationChanged();
+  void commandReceivedFlashLed();
+  ~ConfigurationServer();
 };

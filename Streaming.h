@@ -3,7 +3,7 @@
 #include "Configuration.h"
 #include <WiFiUdp.h>
 
-class Streaming{
+class Streaming : ConfigurationObserver{
 SINGLETON_H(Streaming)
 private:
   WiFiUDP udp;
@@ -15,6 +15,8 @@ public:
   void readFrame();
   byte* buffer;
   int packetSize;
+  void configurationChanged();
+  ~Streaming();
 };
 
 

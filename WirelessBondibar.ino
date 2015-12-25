@@ -6,62 +6,64 @@
 #include "Streaming.h"
 #include "ConfigurationServer.h"
 #include "utils.h"
-
-Configuration* configuration;
-ConfigurationServer* configServer;
-Streaming* streaming;
-
-#define LED 2
+#include "WifiManager.h"
 
 byte bufferToBondi[24];
 
 void initConfig(){
-  configuration = singleton(Configuration);
-  configuration->ssid = "/dev/null";
-  configuration->password = "$sudo\\s!!";
-  configuration->deviceNumber = 0;
-  configuration->pixelsQty = 200; /* not set yet */
-  configuration->streamingPort = 7788;
-  configuration->commandsPort = 9999;
-  configuration->commandPacketLength = 20;
+  Configuration* configuration = singleton(Configuration);
+  
+  configuration->Wifi->ssid = "/dev/null";
+  configuration->Wifi->password = "$sudo\\s!!";
+  configuration->Device->number = 0;
+  configuration->Global->pixelsQty = 200; /* not set yet */
+  configuration->Streaming->port = 7788;
+  configuration->ConfigurationServer->discoveryPort = 9999;
+  configuration->ConfigurationServer->packetLength = 200;
 }
 
 void initStreaming(){
-  streaming = singleton(Streaming);
+  singleton(Streaming);
 }
 
 void initConfigServer(){
-  configServer = singleton(ConfigurationServer);
+  singleton(ConfigurationServer);
 }
+
+void initWifiManager(){
+  singleton(WifiManager)->connect();
+}
+
 
 void setup() {
   Serial.begin(9600);
   while (!Serial) {}
-
-  initConfig();
-  connectToWifi();
-  initStreaming();
-  initConfigServer();
-
+  
   // configure LED
   pinMode(LED,OUTPUT);
   digitalWrite(LED,HIGH);
+  flashLed(300,250,3);
+  
+  initConfig();
+  initWifiManager();
+  initStreaming();
+  initConfigServer();
 }
 
 void loop() {
   
   digitalWrite(LED,HIGH);
   
-  if (streaming->frame()){
+  if (singleton(Streaming)->frame()){
     
     digitalWrite(LED,LOW);
-    streaming->readFrame(); 
-    int start = configuration->deviceNumber*100*3;
-    Bondibar.sendData(streaming->buffer,start,24); 
+    singleton(Streaming)->readFrame(); 
+    int start = singleton(Configuration)->Device->number*100*3;
+    Bondibar.sendData(singleton(Streaming)->buffer,start,24); 
     
-  }else if (configServer->incomingCommand()){
+  }else if (singleton(ConfigurationServer)->incomingCommand()){
     
-    configServer->processCommand();
+    singleton(ConfigurationServer)->processCommand();
   
   }
 }

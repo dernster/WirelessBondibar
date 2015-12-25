@@ -18,17 +18,6 @@ void printWifiStatus() {
   Serial.println(" dBm");
 }
 
-void connectToWifi(){
-  WiFi.disconnect();
-  Configuration* configuration = singleton(Configuration);
-  WiFi.begin(configuration->ssid.c_str(),configuration->password.c_str());
-  while ( WiFi.status() != WL_CONNECTED) {
-    Serial.println("Attempting to connect to SSID: " + configuration->ssid);
-    delay(500);
-  }
-  Serial.println("Connected to wifi");
-  printWifiStatus();
-}
 
 String ipToString(IPAddress ip){
   String res = String(ip[0]) + "." +\
@@ -36,5 +25,50 @@ String ipToString(IPAddress ip){
   String(ip[2]) + "." +\
   String(ip[3]);
   return res;
+}
+
+IPAddress stringToIP(String ipStr){
+  vector<String> numbers = splitString(ipStr,'.');
+  int n[4];
+  for(int i = 0; i < 4; i++){
+    n[i] = numbers[i].toInt();
+  }
+  return IPAddress(n[0],n[1],n[2],n[3]);
+}
+
+vector<String> splitString(String string, char delimiter){
+  vector<String> result;
+  int lastStart = 0;
+  for(int i = 0; i < string.length(); i++){
+    if (string.charAt(i) == delimiter){
+      result.push_back(string.substring(lastStart,i));
+      lastStart = i+1;
+    }
+  }
+  if (lastStart < string.length()){
+    result.push_back(string.substring(lastStart,string.length()));
+  }
+  return result;
+}
+
+Dictionary parseParameters(String stringParams){
+  Dictionary result;
+  vector<String> params = splitString(stringParams,' ');
+  for(int i = 0; i < params.size(); i++){
+    vector<String> keyValue = splitString(params[i],':');
+    if (keyValue.size() == 2){
+      result[keyValue[0]] = keyValue[1];
+    }
+  }
+  return result;
+}
+
+void flashLed(int onMs, int offMs, int times){
+  for(int i = 0; i < times; i++){
+    digitalWrite(LED,LOW);
+    delay(onMs);
+    digitalWrite(LED,HIGH);
+    delay(offMs);
+  }
 }
 
