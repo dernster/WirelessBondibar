@@ -92,9 +92,27 @@ DefineConfig( Device,
   get{
     return String(config.number);
   })
+
+  int var(managedPixelsQty,
+  set{
+    config.managedPixelsQty = value.toInt();
+  },
+  get{
+    return String(config.managedPixelsQty);
+  })
+
+  int var(firstPixel,
+  set{
+    config.firstPixel = value.toInt();
+  },
+  get{
+    return String(config.firstPixel);
+  })
  
   functions({
-      bind(number)
+      bind(number),
+      bind(managedPixelsQty),
+      bind(firstPixel)
   });
 );
 
@@ -142,11 +160,16 @@ class Configuration{
 SINGLETON_H(Configuration)
 public:
   Configuration(){
+    Serial.begin(9600);
+    Serial.println("Configuration()");
     configs.push_back(Wifi = new _Wifi);
     configs.push_back(ConfigurationServer = new _ConfigurationServer);
     configs.push_back(Device = new _Device);
     configs.push_back(Streaming = new _Streaming);
     configs.push_back(Global = new _Global);
+
+    this->Global->pixelsQty = 200; /* not set yet */
+    this->ConfigurationServer->packetLength = 200;
   }
 
   vector<Config*> configs;

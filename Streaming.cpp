@@ -6,21 +6,39 @@ Streaming::Streaming(){
   configuration = singleton(Configuration);
   configuration->addObserver(this);
   buffer = NULL;
-  configure();
+  setup();
 }
 
-void Streaming::configure(){
+void Streaming::setup(){
   udp.begin(configuration->Streaming->port);
   packetSize = configuration->Global->pixelsQty*3;
-  if (buffer != NULL){
+  if (buffer){
     delete [] buffer;
   }
   buffer = new byte[packetSize];
+  active = true;
 }
 
-
 bool Streaming::frame(){
-  return udp.parsePacket() != 0;
+  bool packetIsThere = udp.parsePacket(); 
+  bool lastActive = active;
+
+  /* active-inactive update */
+  static unsigned long lastPacketTime = 0;
+  if (packetIsThere){
+    lastPacketTime = millis();
+    active = true;
+  }else{
+    unsigned long actualTime = millis();
+    active = ((actualTime - lastPacketTime) < 5*1000); /* 5 seconds */
+  }
+  if (lastActive && !active){
+    Serial.println("Streaming is now INACTIVE!");
+  }else if (!lastActive && active){
+    Serial.println("Streaming is now ACTIVE!");
+  }
+  
+  return packetIsThere;
 }
 
 void Streaming::readFrame(){
@@ -28,13 +46,13 @@ void Streaming::readFrame(){
 }
 
 Streaming::~Streaming(){
-  delete []buffer;
+  if (buffer)
+    delete []buffer;
   singleton(Configuration)->removeObserver(this);
 }
 
 void Streaming::configurationChanged(){
   Serial.println("Streaming::configurationChanged()");
-  delete instance;
-  instance = new Streaming();
+  setup();
 }
 

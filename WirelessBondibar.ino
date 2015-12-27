@@ -2,6 +2,7 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <WiFiUdp.h>
+#include <ESP8266mDNS.h>
 #include "Bondibar.h"
 #include "Configuration.h"
 #include "Streaming.h"
@@ -10,66 +11,74 @@
 #include "WifiManager.h"
 #include "APServer.h"
 
-byte bufferToBondi[24];
+#define DEBUG
 
-void initConfig(){
-  Configuration* configuration = singleton(Configuration);
+struct Modules{
+
+  Modules(){
+
+    configuration = singleton(Configuration);
+    configuration->Wifi->ssid = "/dev/nulll";
+    configuration->Wifi->password = "$sudo\\s!!";
+    configuration->Device->number = 0;
+    configuration->Device->managedPixelsQty = 8;
+    configuration->Device->firstPixel = configuration->Device->number*configuration->Device->managedPixelsQty;
+    configuration->Streaming->port = 7788;
+    configuration->ConfigurationServer->discoveryPort = 9999;
+    
+    ap = singleton(APServer);
+    wifiManager = singleton(WifiManager);
+    streaming = singleton(Streaming);
+    configurationServer = singleton(ConfigurationServer);
+    bondibar = singleton(Bondibar); 
+  }
   
-  configuration->Wifi->ssid = "/dev/null";
-  configuration->Wifi->password = "$sudo\\s!!";
-  configuration->Device->number = 0;
-  configuration->Global->pixelsQty = 200; /* not set yet */
-  configuration->Streaming->port = 7788;
-  configuration->ConfigurationServer->discoveryPort = 9999;
-  configuration->ConfigurationServer->packetLength = 200;
-}
+  Configuration* configuration;
+  APServer* ap;
+  WifiManager* wifiManager;
+  Streaming* streaming;
+  ConfigurationServer* configurationServer;
+  Bondibar* bondibar; 
+};
 
-void initStreaming(){
-  singleton(Streaming);
-}
-
-void initConfigServer(){
-  singleton(ConfigurationServer);
-}
-
-void initWifiManager(){
-  singleton(WifiManager)->connect();
-}
-
+Modules* modules;
 
 void setup() {
   Serial.begin(9600);
   while (!Serial) {}
+  WiFi.disconnect();
+  WiFi.mode(WIFI_OFF);  
+  delay(500);
+    
+  Serial.setDebugOutput(true);
+  modules = new Modules();
   
   // configure LED
   pinMode(LED,OUTPUT);
   digitalWrite(LED,HIGH);
   flashLed(300,250,3);
-  
-  initConfig();
-//  initWifiManager();
-//  initStreaming();
-//  initConfigServer();
 }
 
 void loop() {
 
-  singleton(APServer)->handleClient();
-//  
-//  digitalWrite(LED,HIGH);
-//  
-//  if (singleton(Streaming)->frame()){
-//    
-//    digitalWrite(LED,LOW);
-//    singleton(Streaming)->readFrame(); 
-//    int start = singleton(Configuration)->Device->number*100*3;
-//    Bondibar.sendData(singleton(Streaming)->buffer,start,24); 
-//    
-//  }else if (singleton(ConfigurationServer)->incomingCommand()){
-//    
-//    singleton(ConfigurationServer)->processCommand();
-//  
-//  }
+  if (modules->streaming->frame()){ /* is there an incoming frame? */
+
+    Serial.println("hay frame");
+    digitalWrite(LED,LOW);
+    modules->streaming->readFrame(); 
+    int start = modules->configuration->Device->number*100*3;
+    modules->bondibar->sendData(modules->streaming->buffer,modules->configuration->Device->firstPixel,modules->configuration->Device->managedPixelsQty*3); 
+    digitalWrite(LED,HIGH);
+    
+  }else if (!modules->streaming->active){ /* if streaming is not active */
+
+    /* take care of lower priority operations */
+    if(modules->configurationServer->incomingCommand()){ /* is there an incoming configuration command? */
+      modules->configurationServer->processCommand();
+    }else{ /* is there someone connecting to the AP? */
+      modules->ap->handleClient();
+    }
+  }
 }
 
 

@@ -7,6 +7,10 @@ using namespace std;
 
 #define LED 2
 
+#define LOOP_UNTIL(ms)\
+long int start = millis();\
+while((millis() - start) < ms)
+
 #define SINGLETON_H(ClassName)\
 private:\
   static ClassName* instance;\

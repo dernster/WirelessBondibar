@@ -1,4 +1,5 @@
 #include "APServer.h"
+#include <ESP8266mDNS.h>
 
 SINGLETON_CPP(APServer)
 
@@ -8,10 +9,9 @@ APServer::APServer() : server(80){
   Serial.print("Configuring access point...");
   Configuration* conf = singleton(Configuration);
   String n = String(conf->Device->number);
-  apIP = "10.0.0." + n;
-  
+  apIP = "192.168.4.1";
+  WiFi.mode(WIFI_AP_STA);
   WiFi.softAP(("WBB-" + n).c_str());
-  WiFi.softAPConfig(stringToIP(apIP), stringToIP(apIP), stringToIP("255.255.255.0"));
 
   IPAddress myIP = WiFi.softAPIP();
   Serial.print("AP IP address: ");
@@ -27,6 +27,7 @@ void APServer::handleClient(){
 }
 
 void APServer::handleRoot(){
+  Serial.println("Page requested!");
   APServer* ap = singleton(APServer);
   ap->server.send(200, "text/html", buildPage());
 }
@@ -37,14 +38,16 @@ void APServer::handleSave(){
 
   Dictionary params;
   for(int i = 0; i < ap->server.args(); i++){
-    Serial.println(ap->server.argName(i) + ap->server.arg(i));
     params[ap->server.argName(i)] = ap->server.arg(i);
   }
 
+  Serial.println("Configs saved!");
   singleton(Configuration)->setValues(params);
+  
 }
 
 String APServer::buildPage(){
+  
   Configuration* conf = singleton(Configuration);
   String title = "Settings < Device " + String(conf->Device->number) + " >";
   String page1 = ""
@@ -77,6 +80,8 @@ String APServer::buildPage(){
   "xhttp.open(\"POST\", \"http://" + apIP + "/save\", true);"
   "xhttp.setRequestHeader(\"Content-type\", \"application/x-www-form-urlencoded\");"
   "xhttp.send(data);"
+  "var log = document.getElementById(\"log\");"
+  "log.innerHTML = \"Saving...\";"
 "}"
 "</script>"
 "<div id=\"customForm\">";
@@ -99,7 +104,7 @@ String APServer::buildPage(){
     inputs += "</tr>";
   }
 
-  inputs += "<tr> <td colspan=\"2\" cellpadding=\"5\" align=\"right\"> <button type=\"button\" onclick=\"loadDoc()\">Save</button> </td> </tr>";
+  inputs += "<tr> <td align=\"right\" cellpadding=\"5\" id=\"log\"> </td> <td cellpadding=\"5\" align=\"right\"> <button type=\"button\" onclick=\"loadDoc()\">Save</button> </td> </tr>";
   inputs += "</table>";
 
 String page2 = ""

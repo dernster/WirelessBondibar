@@ -10,6 +10,8 @@ private:
   Configuration* configuration;
   char* buffer;
   void registerInServer();
+  void setup();
+  bool serverDiscovered;
 public:
   ConfigurationServer();
   bool incomingCommand();

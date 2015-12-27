@@ -6,6 +6,8 @@ class WifiManager : public ConfigurationObserver{
 SINGLETON_H(WifiManager)
 private:
   Configuration* configuration;
+  void setup();
+  bool connected;
 public:
   WifiManager();
   void connect();

@@ -8,6 +8,7 @@ SINGLETON_H(Streaming)
 private:
   WiFiUDP udp;
   Configuration* configuration;
+  void setup();
 public:
   Streaming();
   void configure();
@@ -17,6 +18,7 @@ public:
   int packetSize;
   void configurationChanged();
   ~Streaming();
+  bool active;
 };
 
 
