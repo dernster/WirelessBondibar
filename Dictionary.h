@@ -11,6 +11,7 @@ private:
 public:
   String& operator[](String key);
   StringPair& pairAt(const int i);
+  void append(Dictionary dict);
   int size(); 
 };
 

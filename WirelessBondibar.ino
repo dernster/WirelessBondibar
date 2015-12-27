@@ -1,5 +1,6 @@
 #include <SPI.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
 #include <WiFiUdp.h>
 #include "Bondibar.h"
 #include "Configuration.h"

@@ -188,6 +188,14 @@ public:
     return res;
   }
 
+  Dictionary toDictionary(){
+    Dictionary res;
+    for(int i = 0; i < configs.size(); i++){
+      res.append(configs[i]->toDictionary());
+    }
+    return res;
+  }
+
   void setValue(const String& tag, const String& value){
     for(int i = 0; i < configs.size(); i++){
       // tags are unique, so this will set de value only in one config

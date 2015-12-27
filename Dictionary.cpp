@@ -18,6 +18,10 @@ StringPair& Dictionary::pairAt(const int i){
   }
 }
 
+void Dictionary::append(Dictionary dict){
+  pairs.insert(pairs.end(), dict.pairs.begin(), dict.pairs.end());
+}
+
 int Dictionary::size(){
   return pairs.size();
 }

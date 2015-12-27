@@ -45,6 +45,16 @@ public:
   String getTag(const String& varName){
     return getPrefix() + "." + varName;
   }
+
+  Dictionary toDictionary(){
+    Dictionary result;
+    int size = getMapperLength();
+    Variable* array = getMapper();
+    for (int i = 0; i < size; i++){
+      result[getTag(array[i].name)] = array[i].getter(this);
+    }
+    return result;
+  }
   
   String toString(){
     String result = getPrefix() + ":\n";
