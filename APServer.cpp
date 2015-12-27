@@ -2,9 +2,16 @@
 
 SINGLETON_CPP(APServer)
 
+String APServer::apIP = "";
+
 APServer::APServer() : server(80){
   Serial.print("Configuring access point...");
-  WiFi.softAP("ESP");
+  Configuration* conf = singleton(Configuration);
+  String n = String(conf->Device->number);
+  apIP = "10.0.0." + n;
+  
+  WiFi.softAP(("WBB-" + n).c_str());
+  WiFi.softAPConfig(stringToIP(apIP), stringToIP(apIP), stringToIP("255.255.255.0"));
 
   IPAddress myIP = WiFi.softAPIP();
   Serial.print("AP IP address: ");
@@ -15,6 +22,10 @@ APServer::APServer() : server(80){
   Serial.println("HTTP server started");
 }
 
+void APServer::handleClient(){
+  server.handleClient();
+}
+
 void APServer::handleRoot(){
   APServer* ap = singleton(APServer);
   ap->server.send(200, "text/html", buildPage());
@@ -22,21 +33,27 @@ void APServer::handleRoot(){
 
 void APServer::handleSave(){
   APServer* ap = singleton(APServer);
-  ap->server.send(200, "text/html", "RESPONSE");
+  ap->server.send(200, "text/html", "Ok");
+
+  Dictionary params;
   for(int i = 0; i < ap->server.args(); i++){
     Serial.println(ap->server.argName(i) + ap->server.arg(i));
+    params[ap->server.argName(i)] = ap->server.arg(i);
   }
+
+  singleton(Configuration)->setValues(params);
 }
 
 String APServer::buildPage(){
   Configuration* conf = singleton(Configuration);
+  String title = "Settings < Device " + String(conf->Device->number) + " >";
   String page1 = ""
 ""  
 "<!DOCTYPE html>"
 "<html>"
 "<body>"
 ""
-"<h2>AJAX</h2>"
+"<h2>" + title + "</h2>"
 ""
 "<script>"
 "function loadDoc() {"
@@ -54,10 +71,10 @@ String APServer::buildPage(){
   "console.log(data);"
   "xhttp.onreadystatechange = function() {"
     "if (xhttp.readyState == 4 && xhttp.status == 200) {"
-      "document.getElementById(\"demo\").innerHTML = xhttp.responseText;"
+      "location.reload();document.getElementById(\"demo\").innerHTML = xhttp.responseText;"
     "}"
   "};"
-  "xhttp.open(\"POST\", \"http://192.168.4.1/save\", true);"
+  "xhttp.open(\"POST\", \"http://" + apIP + "/save\", true);"
   "xhttp.setRequestHeader(\"Content-type\", \"application/x-www-form-urlencoded\");"
   "xhttp.send(data);"
 "}"
@@ -65,18 +82,30 @@ String APServer::buildPage(){
 "<div id=\"customForm\">";
 
   Dictionary dict = conf->toDictionary();
-  String inputs = "";
+  String inputs = ""
+  "<table border=\"1\">"
+    "<tr>"
+    "<th>Config</th>"
+    "<th>Value</th>"
+    "</tr>";
+
+  String styleForInput = "STYLE=\"text-align: center; color: #ffffff; font-weight: bold; background-color: #abd0ce;\"";
 
   for(int i = 0; i < dict.size(); i++){
     StringPair& pair = dict.pairAt(i);
-    inputs += pair.first + ": <input type=\"text\" name=\"" + pair.first +"\" value=\"" + pair.second + "\"><br>";
+    inputs += "<tr>";
+    inputs += "<td>" + pair.first + "</td>"; 
+    inputs += String("<td align=\"center\">") + "<input align=\"middle\"" + styleForInput + " type=\"text\" name=\"" + pair.first +"\" value=\"" + pair.second + "\"><br>" + "</td>";
+    inputs += "</tr>";
   }
+
+  inputs += "<tr> <td colspan=\"2\" cellpadding=\"5\" align=\"right\"> <button type=\"button\" onclick=\"loadDoc()\">Save</button> </td> </tr>";
+  inputs += "</table>";
 
 String page2 = ""
 ""
 "</div>"
 ""
-"<button type=\"button\" onclick=\"loadDoc()\">Request data</button>"
 "</body>"
 "</html>"
 ;

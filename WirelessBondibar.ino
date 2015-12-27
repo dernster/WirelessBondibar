@@ -8,6 +8,7 @@
 #include "ConfigurationServer.h"
 #include "utils.h"
 #include "WifiManager.h"
+#include "APServer.h"
 
 byte bufferToBondi[24];
 
@@ -46,27 +47,29 @@ void setup() {
   flashLed(300,250,3);
   
   initConfig();
-  initWifiManager();
-  initStreaming();
-  initConfigServer();
+//  initWifiManager();
+//  initStreaming();
+//  initConfigServer();
 }
 
 void loop() {
-  
-  digitalWrite(LED,HIGH);
-  
-  if (singleton(Streaming)->frame()){
-    
-    digitalWrite(LED,LOW);
-    singleton(Streaming)->readFrame(); 
-    int start = singleton(Configuration)->Device->number*100*3;
-    Bondibar.sendData(singleton(Streaming)->buffer,start,24); 
-    
-  }else if (singleton(ConfigurationServer)->incomingCommand()){
-    
-    singleton(ConfigurationServer)->processCommand();
-  
-  }
+
+  singleton(APServer)->handleClient();
+//  
+//  digitalWrite(LED,HIGH);
+//  
+//  if (singleton(Streaming)->frame()){
+//    
+//    digitalWrite(LED,LOW);
+//    singleton(Streaming)->readFrame(); 
+//    int start = singleton(Configuration)->Device->number*100*3;
+//    Bondibar.sendData(singleton(Streaming)->buffer,start,24); 
+//    
+//  }else if (singleton(ConfigurationServer)->incomingCommand()){
+//    
+//    singleton(ConfigurationServer)->processCommand();
+//  
+//  }
 }
 
 
