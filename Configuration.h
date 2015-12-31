@@ -1,6 +1,8 @@
 #pragma once
 #include "utils.h"
+#include "Storage.h"
 #include "ConfigurationMacros.h"
+
 
 //-------------Wifi---------------
 
@@ -8,26 +10,26 @@ DefineConfig( Wifi,
 
   String var(ssid,
   setter{
-    config.ssid = value;
+    __config.ssid = value;
   },
   getter{
-    return config.ssid;
+    return __config.ssid;
   })
 
   String var(password,
   setter{
-    config.password = value;
+    __config.password = value;
   },
   getter{
-    return config.password;
+    return __config.password;
   })
 
   String var(ip,
   setter{
-    config.ip = value;
+    __config.ip = value;
   },
   getter{
-    return config.ip;
+    return __config.ip;
   })
 
   functions({
@@ -43,34 +45,34 @@ DefineConfig( ConfigurationServer,
   
   String var(ip,
   setter{
-    config.ip = value;
+    __config.ip = value;
   },
   getter{
-    return config.ip;
+    return __config.ip;
   })
   
   int var(port,
   setter{
-    config.port = value.toInt();
+    __config.port = value.toInt();
   },
   getter{
-    return String(config.port);
+    return String(__config.port);
   })
   
   int var(discoveryPort,
   setter{
-    config.discoveryPort = value.toInt();
+    __config.discoveryPort = value.toInt();
   },
   getter{
-    return String(config.discoveryPort);
+    return String(__config.discoveryPort);
   })
   
   int var(packetLength,
   setter{
-    config.packetLength = value.toInt();
+    __config.packetLength = value.toInt();
   },
   getter{
-    return String(config.packetLength);
+    return String(__config.packetLength);
   })
 
   functions({
@@ -87,26 +89,26 @@ DefineConfig( Device,
   
   int var(number,
   setter{
-    config.number = value.toInt();
+    __config.number = value.toInt();
   },
   getter{
-    return String(config.number);
+    return String(__config.number);
   })
 
   int var(managedPixelsQty,
   setter{
-    config.managedPixelsQty = value.toInt();
+    __config.managedPixelsQty = value.toInt();
   },
   getter{
-    return String(config.managedPixelsQty);
+    return String(__config.managedPixelsQty);
   })
 
   int var(firstPixel,
   setter{
-    config.firstPixel = value.toInt();
+    __config.firstPixel = value.toInt();
   },
   getter{
-    return String(config.firstPixel);
+    return String(__config.firstPixel);
   })
  
   functions({
@@ -123,10 +125,10 @@ DefineConfig( Streaming,
   
   int var(port,
   setter{
-    config.port = value.toInt();
+    __config.port = value.toInt();
   },
   getter{
-    return String(config.port);
+    return String(__config.port);
   })
  
   functions({
@@ -140,10 +142,10 @@ DefineConfig( Global,
   
   int var(pixelsQty,
   setter{
-    config.pixelsQty = value.toInt();
+    __config.pixelsQty = value.toInt();
   },
   getter{
-    return String(config.pixelsQty);
+    return String(__config.pixelsQty);
   })
  
   functions({

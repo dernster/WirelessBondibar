@@ -4,6 +4,7 @@
 #include <WiFiUdp.h>
 #include <ESP8266mDNS.h>
 #include <EEPROM.h>
+#include "Storage.h"
 #include "Bondibar.h"
 #include "Configuration.h"
 #include "Streaming.h"
@@ -11,7 +12,10 @@
 #include "utils.h"
 #include "WifiManager.h"
 #include "APServer.h"
-#include "Storage.h"
+
+extern "C" {
+#include "user_interface.h"
+}
 
 #define DEBUG
 
@@ -19,14 +23,17 @@ struct Modules{
 
   Modules(){
 
-    configuration = singleton(Configuration);
-    singleton(Storage)->readSSIDAndPassword(configuration->Wifi->ssid,configuration->Wifi->password);
-    configuration->Device->number = singleton(Storage)->readDeviceID();
+    configuration = singleton(Configuration);;
     configuration->Device->managedPixelsQty = 8;
     configuration->Device->firstPixel = configuration->Device->number*configuration->Device->managedPixelsQty;
     configuration->Streaming->port = 7788;
     configuration->ConfigurationServer->discoveryPort = 9999;
-    
+
+    /* read configs from EEPROM */
+    singleton(Storage)->readSSIDAndPassword(configuration->Wifi->ssid,configuration->Wifi->password);
+    configuration->Device->number = singleton(Storage)->readDeviceID();
+
+    /* create modules */
     ap = singleton(APServer);
     wifiManager = singleton(WifiManager);
     streaming = singleton(Streaming);
@@ -45,11 +52,18 @@ struct Modules{
 Modules* modules;
 
 void setup() {
-
   // configure LED
   pinMode(LED,OUTPUT);
   digitalWrite(LED,HIGH);
   flashLed(300,250,3);
+
+  /* set hostname, this works only from setup function */
+  String str = "WBB-" + String(singleton(Storage)->readDeviceID());
+  char * hostName = new char[str.length() + 1];
+  strcpy(hostName, str.c_str());
+  hostName[str.length()] = '\0';
+  wifi_station_set_hostname(hostName);
+  delete[] hostName;
   
   Serial.begin(9600);
   while (!Serial) {}

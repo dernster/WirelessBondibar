@@ -77,7 +77,9 @@ public:
 
 #define setter
 #define getter
-#define var(name,sett,gett) name; setterHeader(name)sett; getterHeader(name)gett;
+
+#define var(name,sett,gett)\
+name; setterHeader(name)sett; getterHeader(name)gett;
 
 //--------------------------
 
@@ -98,6 +100,7 @@ int getMapperLength(){\
 #define bind(var)\
 Variable(#var,&setterFuncName(var),&getterFuncName(var))
 
+
 #define setterFuncName(name) set_ ## name
 #define getterFuncName(name) get_ ## name
 
@@ -107,7 +110,7 @@ static void setterFuncName(name)(Config* instance, const String& value)
 #define getterHeader(name)\
 static String getterFuncName(name)(Config* instance)
 
-#define config (*cast(instance))
+#define __config (*cast(instance))
 
 //--------------------------
 
@@ -115,7 +118,6 @@ static String getterFuncName(name)(Config* instance)
 #define DefineConfig(Name,...)\
 class _ ## Name : public Config {\
 public:\
-\
 static _ ## Name* cast(Config* instance){\
     return (_ ## Name*) instance;\
 }\
