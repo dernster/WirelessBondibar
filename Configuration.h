@@ -7,26 +7,26 @@
 DefineConfig( Wifi,
 
   String var(ssid,
-  set{
+  setter{
     config.ssid = value;
   },
-  get{
+  getter{
     return config.ssid;
   })
 
   String var(password,
-  set{
+  setter{
     config.password = value;
   },
-  get{
+  getter{
     return config.password;
   })
 
   String var(ip,
-  set{
+  setter{
     config.ip = value;
   },
-  get{
+  getter{
     return config.ip;
   })
 
@@ -42,34 +42,34 @@ DefineConfig( Wifi,
 DefineConfig( ConfigurationServer,
   
   String var(ip,
-  set{
+  setter{
     config.ip = value;
   },
-  get{
+  getter{
     return config.ip;
   })
   
   int var(port,
-  set{
+  setter{
     config.port = value.toInt();
   },
-  get{
+  getter{
     return String(config.port);
   })
   
   int var(discoveryPort,
-  set{
+  setter{
     config.discoveryPort = value.toInt();
   },
-  get{
+  getter{
     return String(config.discoveryPort);
   })
   
   int var(packetLength,
-  set{
+  setter{
     config.packetLength = value.toInt();
   },
-  get{
+  getter{
     return String(config.packetLength);
   })
 
@@ -86,26 +86,26 @@ DefineConfig( ConfigurationServer,
 DefineConfig( Device,
   
   int var(number,
-  set{
+  setter{
     config.number = value.toInt();
   },
-  get{
+  getter{
     return String(config.number);
   })
 
   int var(managedPixelsQty,
-  set{
+  setter{
     config.managedPixelsQty = value.toInt();
   },
-  get{
+  getter{
     return String(config.managedPixelsQty);
   })
 
   int var(firstPixel,
-  set{
+  setter{
     config.firstPixel = value.toInt();
   },
-  get{
+  getter{
     return String(config.firstPixel);
   })
  
@@ -122,10 +122,10 @@ DefineConfig( Device,
 DefineConfig( Streaming,
   
   int var(port,
-  set{
+  setter{
     config.port = value.toInt();
   },
-  get{
+  getter{
     return String(config.port);
   })
  
@@ -139,10 +139,10 @@ DefineConfig( Streaming,
 DefineConfig( Global,
   
   int var(pixelsQty,
-  set{
+  setter{
     config.pixelsQty = value.toInt();
   },
-  get{
+  getter{
     return String(config.pixelsQty);
   })
  
@@ -160,8 +160,7 @@ class Configuration{
 SINGLETON_H(Configuration)
 public:
   Configuration(){
-    Serial.begin(9600);
-    Serial.println("Configuration()");
+    
     configs.push_back(Wifi = new _Wifi);
     configs.push_back(ConfigurationServer = new _ConfigurationServer);
     configs.push_back(Device = new _Device);

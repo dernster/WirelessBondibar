@@ -77,7 +77,7 @@ String APServer::buildPage(){
       "location.reload();document.getElementById(\"demo\").innerHTML = xhttp.responseText;"
     "}"
   "};"
-  "xhttp.open(\"POST\", \"http://" + apIP + "/save\", true);"
+  "xhttp.open(\"POST\", document.URL + \"save\", true);"
   "xhttp.setRequestHeader(\"Content-type\", \"application/x-www-form-urlencoded\");"
   "xhttp.send(data);"
   "var log = document.getElementById(\"log\");"

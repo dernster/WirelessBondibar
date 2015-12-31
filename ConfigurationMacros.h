@@ -75,9 +75,9 @@ public:
 #define VA_NUM_ARGS(...) VA_NUM_ARGS_IMPL(__VA_ARGS__, 10,9,8,7,6,5,4,3,2,1)
 #define VA_NUM_ARGS_IMPL(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,N,...) N
 
-#define set
-#define get
-#define var(name,sett,gett) name; setter(name)sett; getter(name)gett;
+#define setter
+#define getter
+#define var(name,sett,gett) name; setterHeader(name)sett; getterHeader(name)gett;
 
 //--------------------------
 
@@ -101,10 +101,10 @@ Variable(#var,&setterFuncName(var),&getterFuncName(var))
 #define setterFuncName(name) set_ ## name
 #define getterFuncName(name) get_ ## name
 
-#define setter(name)\
+#define setterHeader(name)\
 static void setterFuncName(name)(Config* instance, const String& value)
 
-#define getter(name)\
+#define getterHeader(name)\
 static String getterFuncName(name)(Config* instance)
 
 #define config (*cast(instance))

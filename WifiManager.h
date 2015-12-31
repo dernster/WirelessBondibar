@@ -1,6 +1,7 @@
 #pragma once
 #include "utils.h"
 #include "Configuration.h"
+#include "Storage.h"
 
 class WifiManager : public ConfigurationObserver{
 SINGLETON_H(WifiManager)

@@ -38,7 +38,11 @@ void WifiManager::disconnect(){
 }
   
 void WifiManager::configurationChanged(){
-  if (configuration->Wifi->ssid != String(WiFi.SSID())){
+  String lastSSID;
+  String lastPassword;
+  singleton(Storage)->readSSIDAndPassword(lastSSID,lastPassword);
+  if ((configuration->Wifi->ssid != lastSSID) || (configuration->Wifi->password != lastPassword)){
+    singleton(Storage)->setSSIDAndPassword(configuration->Wifi->ssid,configuration->Wifi->password);
     Serial.println("WifiManager::configurationChanged()");
     setup();
   }
