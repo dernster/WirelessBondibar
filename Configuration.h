@@ -26,7 +26,7 @@ DefineConfig( Wifi,
 
   String var(ip,
   setter{
-    __config.ip = value;
+    /* read only */
   },
   getter{
     return __config.ip;
@@ -89,7 +89,7 @@ DefineConfig( Device,
   
   int var(number,
   setter{
-    __config.number = value.toInt();
+    /* read only */
   },
   getter{
     return String(__config.number);
