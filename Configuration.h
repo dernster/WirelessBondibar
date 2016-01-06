@@ -136,6 +136,24 @@ DefineConfig( Streaming,
   });
 );
 
+
+//-------------Stats---------------
+
+DefineConfig( Stats,
+  
+  float var(bitRate,
+  setter{
+    __config.bitRate = value.toFloat();
+  },
+  getter{
+    return String(__config.bitRate) + " kbps";
+  })
+ 
+  functions({
+      bind(bitRate)
+  });
+);
+
 //-------------Global---------------
 
 DefineConfig( Global,
@@ -168,6 +186,7 @@ public:
     configs.push_back(Device = new _Device);
     configs.push_back(Streaming = new _Streaming);
     configs.push_back(Global = new _Global);
+    configs.push_back(Stats = new _Stats);
 
     this->Global->pixelsQty = 200; /* not set yet */
     this->ConfigurationServer->packetLength = 200;
@@ -180,6 +199,7 @@ public:
   _Device* Device;
   _Streaming* Streaming;
   _Global* Global;
+  _Stats* Stats;
 
   vector<ConfigurationObserver*> observers;
 

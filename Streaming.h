@@ -7,6 +7,9 @@ class Streaming : ConfigurationObserver{
 SINGLETON_H(Streaming)
 private:
   WiFiUDP udp;
+  unsigned long start;
+  unsigned long stop;
+  unsigned long bytesReceived;
   Configuration* configuration;
   void setup();
 public:
