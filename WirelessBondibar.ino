@@ -36,8 +36,8 @@ struct Modules{
     /* create modules */
     ap = singleton(APServer);
     wifiManager = singleton(WifiManager);
-    streaming = singleton(Streaming);
-    configurationServer = singleton(ConfigurationServer);
+    // streaming = singleton(Streaming);
+    // configurationServer = singleton(ConfigurationServer);
     bondibar = singleton(Bondibar); 
   }
   
@@ -50,6 +50,27 @@ struct Modules{
 };
 
 Modules* modules;
+
+class TimeClock{
+public:
+  long correction;
+
+  TimeClock(){
+    correction = 0;
+  }
+
+  long time(){
+    return ((long)millis()) + correction;
+  }
+};
+
+TimeClock clock;
+WiFiUDP udpRecv;
+WiFiUDP udpSend;
+char buffer[200];
+
+
+
 
 void setup() {
   // configure LED
@@ -74,26 +95,103 @@ void setup() {
     
   Serial.setDebugOutput(true);
   modules = new Modules();
+
+
+  udpRecv.begin(8888);
 }
+//-------------------------------------------------
+
+
+
+
+
+
 
 void loop() {
 
-  if (modules->streaming->frame()){ /* is there an incoming frame? */
+  int size = udpRecv.parsePacket();
+  if (size){
 
-    digitalWrite(LED,LOW);
-    modules->streaming->readFrame(); 
-    modules->bondibar->sendData(modules->streaming->buffer,modules->configuration->Device->firstPixel,modules->configuration->Device->managedPixelsQty*3); 
-    digitalWrite(LED,HIGH);
+    Serial.println("hay paquete!");
+
+    udpRecv.read(buffer,size);
+    buffer[size] = '\0';
+
+    String command(buffer);
+
+    Serial.println(command);
+
+    if (command == "clock_request"){
+
+      /* master is requesting my time */
+      long t = clock.time();
+      Serial.println("time requested! " + String(t));
+
+      IPAddress ip(192,168,1,100);
+      int res = udpSend.beginPacket(ip,8889);
+      String data(t);
+      udpSend.write(data.c_str(),data.length());
+      udpSend.endPacket();
+
+      
     
-  }else if (!modules->streaming->active){ /* if streaming is not active == 5 seconds of inactivity */
+    }else if (command.startsWith("adjust_clock")){
 
-    /* take care of lower priority operations */
-    if(modules->configurationServer->incomingCommand()){ /* is there an incoming configuration command? */
-      modules->configurationServer->processCommand();
-    }else{ /* is there someone connecting to the AP? */
-      modules->ap->handleClient();
+      vector<String> split = splitString(command,' ');
+      long offset = split[1].toInt();
+
+      Serial.println(String("time ") + String(clock.time()));
+
+      clock.correction += offset;
+
+      Serial.println(String("time adjsted ") + String(clock.time()));
     }
+
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // if (modules->streaming->frame()){ /* is there an incoming frame? */
+
+  //   digitalWrite(LED,LOW);
+  //   modules->streaming->readFrame();
+  //   //modules->bondibar->sendData(modules->streaming->buffer,modules->configuration->Device->firstPixel,modules->configuration->Device->managedPixelsQty*3); 
+  //   frame f;
+  //   f.len = modules->configuration->Device->managedPixelsQty*3;
+  //   f.data = new byte[f.len];
+  //   for(int i = 0; i < f.len; i++){
+  //     f.data[i] = modules->streaming->buffer[modules->configuration->Device->firstPixel + i];
+  //   }
+  //   f.seq = modules->streaming->buffer[0] + (modules->streaming->buffer[1] << 8);
+  //   f.scheduleTime = f.seq + delta;
+
+
+
+  //   digitalWrite(LED,HIGH);
+
+
+
+    
+  // }else if (!modules->streaming->active){ /* if streaming is not active == 5 seconds of inactivity */
+
+  //   /* take care of lower priority operations */
+  //   if(modules->configurationServer->incomingCommand()){ /* is there an incoming configuration command? */
+  //     modules->configurationServer->processCommand();
+  //   }else{ /* is there someone connecting to the AP? */
+  //     modules->ap->handleClient();
+  //   }
+  // }
 }
 
 
