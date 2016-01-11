@@ -90,11 +90,17 @@ TimeClock clock;
 WiFiUDP udpRecv;
 WiFiUDP udpSend;
 char buffer[200];
-
+byte white[24] = {0};
+byte black[24] = {0};
 
 
 
 void setup() {
+
+  for(int i = 0; i < 24; i++){
+    white[i] = 255;
+    black[i] = 0;
+  }
   // configure LED
   pinMode(LED,OUTPUT);
   digitalWrite(LED,HIGH);
@@ -128,8 +134,7 @@ void setup() {
 
 
 
-byte white[24] = {255};
-byte black[24] = {0};
+
 
 
 void loop() {
