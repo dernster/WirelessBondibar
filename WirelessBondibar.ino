@@ -51,16 +51,38 @@ struct Modules{
 
 Modules* modules;
 
+#define time_r unsigned long
+
 class TimeClock{
 public:
   long correction;
+
+  void addCorrection(long offset){
+    correction += offset;
+    alarmStart += offset;
+  }
 
   TimeClock(){
     correction = 0;
   }
 
-  long time(){
-    return ((long)millis()) + correction;
+  time_r time(){
+    return ((time_r)millis()) + correction;
+  }
+
+  time_r alarmStart;
+  time_r alarmInterval;
+  void setAlarmIn(time_r ms){
+    alarmStart = time();
+    alarmInterval = ms;
+  }
+
+  bool alarm(){
+    time_r currentTime = time();
+    if (currentTime >= alarmStart)
+      return ((currentTime - alarmStart) >= alarmInterval);
+    else
+      return ((0xFFFFFFFF - alarmStart) + currentTime >= alarmInterval);
   }
 };
 
@@ -98,13 +120,16 @@ void setup() {
 
 
   udpRecv.begin(8888);
+
+  clock.setAlarmIn(10000);
 }
 //-------------------------------------------------
 
 
 
 
-
+byte white[24] = {255};
+byte black[24] = {0};
 
 
 void loop() {
@@ -133,22 +158,24 @@ void loop() {
       udpSend.write(data.c_str(),data.length());
       udpSend.endPacket();
 
-      
-    
     }else if (command.startsWith("adjust_clock")){
 
       vector<String> split = splitString(command,' ');
       long offset = split[1].toInt();
-
       Serial.println(String("time ") + String(clock.time()));
-
-      clock.correction += offset;
-
+      clock.addCorrection(offset);
       Serial.println(String("time adjsted ") + String(clock.time()));
     }
-
   }
-
+  if (clock.alarm()){
+    Serial.println("Alram!");
+    modules->bondibar->sendData(white,24);
+    clock.setAlarmIn(1000);
+    while (!clock.alarm());
+    modules->bondibar->sendData(black,24);
+    clock.setAlarmIn(10000);
+    
+  }
 
 
 
