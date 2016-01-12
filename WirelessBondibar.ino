@@ -23,7 +23,7 @@ struct Modules{
 
   Modules(){
 
-    configuration = singleton(Configuration);;
+    configuration = singleton(Configuration);
     configuration->Device->managedPixelsQty = 8;
     configuration->Device->firstPixel = configuration->Device->number*configuration->Device->managedPixelsQty;
     configuration->Streaming->port = 7788;
@@ -172,7 +172,7 @@ void loop() {
       Serial.println(String("time adjsted ") + String(clock.time()));
     }
   }
-  if (clock.alarm()){
+  if ((clock.time() % 10000) == 0){
     Serial.println("Alram!");
     modules->bondibar->sendData(white,24);
     clock.setAlarmIn(1000);
