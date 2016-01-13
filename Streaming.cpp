@@ -102,6 +102,8 @@ void Streaming::bufferFrame(){
 Frame* Streaming::frameToPlay(){
 
   static int times = 0;
+  static float meanCount = 0;
+  static float meanSum = 0;
   
   if (buffer.size() == 0)
     return NULL;
@@ -116,14 +118,19 @@ Frame* Streaming::frameToPlay(){
 //    Serial.println("TImes = " + String(times));
 //  }
 
-  if (abs(currentTime - packetTime) <= 10){
+  if (abs(currentTime - packetTime) <= 1){
     buffer.erase(buffer.begin());
     updateBufferStat();
     return frame;
-  }else if(currentTime >= packetTime + 10){
+  }else if(currentTime >= packetTime + 1){
     buffer.erase(buffer.begin());
     updateBufferStat();
-    Serial.println("Packet skipped!");
+    // Serial.println("Packet skipped! currentTime is ahead by: " + String(currentTime) + " - " + String(packetTime));
+    meanCount++;
+    meanSum += (currentTime - packetTime);
+    configuration->Stats->playbackMeanDelay = meanSum / meanCount;
+    if (configuration->Stats->playbackMaxDelay < currentTime - packetTime)
+      configuration->Stats->playbackMaxDelay = currentTime - packetTime;    
   }
 
   return NULL;

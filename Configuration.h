@@ -157,9 +157,27 @@ DefineConfig( Stats,
     return String(__config.streamingQueueMeanSize) + " frames";
   })
  
+  float var(playbackMeanDelay,
+  setter{
+    /* read only */
+  },
+  getter{
+    return String(__config.playbackMeanDelay) + " milliseconds";
+  })
+
+  float var(playbackMaxDelay,
+  setter{
+    /* read only */
+  },
+  getter{
+    return String(__config.playbackMaxDelay) + " milliseconds";
+  })
+
   functions({
       bind(bitRate),
-      bind(streamingQueueMeanSize)
+      bind(streamingQueueMeanSize),
+      bind(playbackMeanDelay),
+      bind(playbackMaxDelay)
   });
 );
 
