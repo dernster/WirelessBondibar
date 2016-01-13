@@ -4,8 +4,9 @@ SINGLETON_CPP(Streaming)
 
 Streaming::Streaming(){
   configuration = singleton(Configuration);
+  clock = singleton(TimeClock);
   configuration->addObserver(this);
-  buffer = NULL;
+  dataBuffer = NULL;
   setup();
 }
 
@@ -13,11 +14,11 @@ void Streaming::setup(){
   bytesReceived = 0;
   udp.begin(configuration->Streaming->port);
   packetSize = configuration->Global->pixelsQty*3;
-  if (buffer){
-    delete [] buffer;
+  if (dataBuffer){
+    delete [] dataBuffer;
   }
-  buffer = new byte[packetSize];
-  Serial.println(String("Buffer size = ") + String(packetSize));
+  dataBuffer = new byte[packetSize];
+  Serial.println(String("dataBuffer size = ") + String(packetSize));
   active = true;
 }
 
@@ -51,19 +52,90 @@ bool Streaming::frame(){
   return packetIsThere;
 }
 
-void Streaming::readFrame(){
-  int size = udp.read(buffer, packetSize);
-  bytesReceived += size + 8 + 20;
-}
 
 Streaming::~Streaming(){
-  if (buffer)
-    delete []buffer;
+  if (dataBuffer)
+    delete []dataBuffer;
   singleton(Configuration)->removeObserver(this);
 }
 
 void Streaming::configurationChanged(){
   Serial.println("Streaming::configurationChanged()");
   setup();
+}
+
+void Streaming::bufferFrame(){
+
+  static unsigned long expectedSeq = 0;
+
+  int size = udp.read(dataBuffer, packetSize);
+  bytesReceived += size + 8 + 20;
+
+  time_r playbackTime = dataBuffer[0] + (dataBuffer[1]<<8) + (dataBuffer[2]<<16) + (dataBuffer[3]<<24);
+  short int seq = dataBuffer[4] + (dataBuffer[5]<<8);
+
+  Frame* frame = new Frame();
+  frame->pt = playbackTime;
+  frame->seq = seq;
+  frame->len = configuration->Device->managedPixelsQty;
+  int offset = 6 + configuration->Device->firstPixel;
+  frame->data = copyBuffer(dataBuffer + offset, frame->len);
+
+  if (frame->seq != expectedSeq){
+    Serial.println("Wrong seq number! expected=" + String(expectedSeq) + " got=" + String(frame->seq));
+  }
+
+  expectedSeq = frame->seq + 1;
+
+  if (buffer.size() >= 200){
+    Serial.println("Buffer overloaded!");
+    return;
+  }
+
+//  Serial.println("Current time: " + String(clock->time()));
+//  Serial.println("Playback time: " + String(playbackTime));
+  
+  buffer.push_back(frame);
+  updateBufferStat();
+}
+
+Frame* Streaming::frameToPlay(){
+
+  static int times = 0;
+  
+  if (buffer.size() == 0)
+    return NULL;
+    
+  time_r currentTime = clock->time();
+  Frame* frame = buffer[0];
+  time_r packetTime = frame->pt;
+
+//  if ((currentTime >= 500) && (currentTime < 501)){
+//    times++;
+//  }else if (currentTime >= 501){
+//    Serial.println("TImes = " + String(times));
+//  }
+
+  if (abs(currentTime - packetTime) <= 10){
+    buffer.erase(buffer.begin());
+    updateBufferStat();
+    return frame;
+  }else if(currentTime >= packetTime + 10){
+    buffer.erase(buffer.begin());
+    updateBufferStat();
+    Serial.println("Packet skipped!");
+  }
+
+  return NULL;
+}
+
+void Streaming::updateBufferStat(){
+  static unsigned long qty = 0;
+  static unsigned long sizes = 0;
+
+  qty++;
+  sizes += buffer.size();
+  
+  configuration->Stats->streamingQueueMeanSize = (float)sizes/(float)qty;
 }
 

@@ -143,14 +143,23 @@ DefineConfig( Stats,
   
   float var(bitRate,
   setter{
-    __config.bitRate = value.toFloat();
+    /* read only */
   },
   getter{
     return String(__config.bitRate) + " kbps";
   })
+
+  float var(streamingQueueMeanSize,
+  setter{
+    /* read only */
+  },
+  getter{
+    return String(__config.streamingQueueMeanSize) + " frames";
+  })
  
   functions({
-      bind(bitRate)
+      bind(bitRate),
+      bind(streamingQueueMeanSize)
   });
 );
 

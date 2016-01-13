@@ -5,6 +5,8 @@
 #include "Dictionary.h"
 using namespace std;
 
+#define time_r unsigned long
+
 #define LED 2
 
 #define LOOP_UNTIL(ms)\
@@ -39,3 +41,4 @@ IPAddress stringToIP(String ipStr);
 void connectToWifi();
 vector<String> splitString(String string, char delimiter);
 Dictionary parseParameters(String params);
+byte* copyBuffer(byte* src,int len);

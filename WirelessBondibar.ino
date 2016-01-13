@@ -12,6 +12,7 @@
 #include "utils.h"
 #include "WifiManager.h"
 #include "APServer.h"
+#include "TimeClock.h"
 
 extern "C" {
 #include "user_interface.h"
@@ -36,9 +37,10 @@ struct Modules{
     /* create modules */
     ap = singleton(APServer);
     wifiManager = singleton(WifiManager);
-    // streaming = singleton(Streaming);
+    streaming = singleton(Streaming);
     // configurationServer = singleton(ConfigurationServer);
     bondibar = singleton(Bondibar); 
+    clock = singleton(TimeClock);
   }
   
   Configuration* configuration;
@@ -46,47 +48,14 @@ struct Modules{
   WifiManager* wifiManager;
   Streaming* streaming;
   ConfigurationServer* configurationServer;
-  Bondibar* bondibar; 
+  Bondibar* bondibar;
+  TimeClock* clock; 
 };
 
 Modules* modules;
 
-#define time_r unsigned long
+Frame* playFrame;
 
-class TimeClock{
-public:
-  long correction;
-
-  void addCorrection(long offset){
-    correction += offset;
-    alarmStart += offset;
-  }
-
-  TimeClock(){
-    correction = 0;
-  }
-
-  time_r time(){
-    return ((time_r)millis()) + correction;
-  }
-
-  time_r alarmStart;
-  time_r alarmInterval;
-  void setAlarmIn(time_r ms){
-    alarmStart = time();
-    alarmInterval = ms;
-  }
-
-  bool alarm(){
-    time_r currentTime = time();
-    if (currentTime >= alarmStart)
-      return ((currentTime - alarmStart) >= alarmInterval);
-    else
-      return ((0xFFFFFFFF - alarmStart) + currentTime >= alarmInterval);
-  }
-};
-
-TimeClock clock;
 WiFiUDP udpRecv;
 WiFiUDP udpSend;
 char buffer[200];
@@ -126,60 +95,60 @@ void setup() {
 
 
   udpRecv.begin(8888);
-
-  clock.setAlarmIn(10000);
 }
 //-------------------------------------------------
 
 
 
 
-
-
-
 void loop() {
 
-  int size = udpRecv.parsePacket();
-  if (size){
+  if (modules->streaming->frame()){
 
-    Serial.println("hay paquete!");
+    modules->streaming->bufferFrame();
 
-    udpRecv.read(buffer,size);
-    buffer[size] = '\0';
+  }else if((playFrame = modules->streaming->frameToPlay()) != NULL){
 
-    String command(buffer);
-
-    Serial.println(command);
-
-    if (command == "clock_request"){
-
-      /* master is requesting my time */
-      long t = clock.time();
-      Serial.println("time requested! " + String(t));
-
-      IPAddress ip(192,168,1,100);
-      int res = udpSend.beginPacket(ip,8889);
-      String data(t);
-      udpSend.write(data.c_str(),data.length());
-      udpSend.endPacket();
-
-    }else if (command.startsWith("adjust_clock")){
-
-      vector<String> split = splitString(command,' ');
-      long offset = split[1].toInt();
-      Serial.println(String("time ") + String(clock.time()));
-      clock.addCorrection(offset);
-      Serial.println(String("time adjsted ") + String(clock.time()));
-    }
-  }
-  if ((clock.time() % 10000) == 0){
-    Serial.println("Alram!");
-    modules->bondibar->sendData(white,24);
-    clock.setAlarmIn(1000);
-    while (!clock.alarm());
-    modules->bondibar->sendData(black,24);
-    clock.setAlarmIn(10000);
+    modules->bondibar->sendData(playFrame->data,playFrame->len);
+    delete playFrame;
     
+  }else if (!modules->streaming->active){
+
+    int size = udpRecv.parsePacket();
+    if (size){
+
+      Serial.println("hay paquete!");
+
+      udpRecv.read(buffer,size);
+      buffer[size] = '\0';
+
+      String command(buffer);
+
+      Serial.println(command);
+
+      if (command == "clock_request"){
+
+        /* master is requesting my time */
+        long t = modules->clock->time();
+        Serial.println("time requested! " + String(t));
+
+        IPAddress ip(192,168,1,100);
+        int res = udpSend.beginPacket(ip,8889);
+        String data(t);
+        udpSend.write(data.c_str(),data.length());
+        udpSend.endPacket();
+
+      }else if (command.startsWith("adjust_clock")){
+
+        vector<String> split = splitString(command,' ');
+        long offset = split[1].toInt();
+        Serial.println(String("time ") + String(modules->clock->time()));
+        modules->clock->addCorrection(offset);
+        Serial.println(String("time adjsted ") + String(modules->clock->time()));
+      }   
+    }else{
+      modules->ap->handleClient();
+    }
   }
 
 

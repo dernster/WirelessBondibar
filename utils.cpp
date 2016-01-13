@@ -72,3 +72,10 @@ void flashLed(int onMs, int offMs, int times){
   }
 }
 
+byte* copyBuffer(byte* src,int len){
+  byte* dst = new byte[len];
+  for(int i = 0; i < len; i++)
+    dst[i] = src[i];
+  return dst;
+}
+
