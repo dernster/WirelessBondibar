@@ -41,7 +41,7 @@ DefineConfig( Wifi,
 
 //-------------ConfigurationServer---------------
 
-DefineConfig( ConfigurationServer,
+DefineConfig( ControlServer,
   
   String var(ip,
   setter{
@@ -209,20 +209,20 @@ public:
   Configuration(){
     
     configs.push_back(Wifi = new _Wifi);
-    configs.push_back(ConfigurationServer = new _ConfigurationServer);
+    configs.push_back(ControlServer = new _ControlServer);
     configs.push_back(Device = new _Device);
     configs.push_back(Streaming = new _Streaming);
     configs.push_back(Global = new _Global);
     configs.push_back(Stats = new _Stats);
 
     this->Global->pixelsQty = 200; /* not set yet */
-    this->ConfigurationServer->packetLength = 200;
+    this->ControlServer->packetLength = 200;
   }
 
   vector<Config*> configs;
   
   _Wifi* Wifi;
-  _ConfigurationServer* ConfigurationServer;
+  _ControlServer* ControlServer;
   _Device* Device;
   _Streaming* Streaming;
   _Global* Global;

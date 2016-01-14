@@ -1,14 +1,13 @@
 #include <SPI.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
-#include <WiFiUdp.h>
 #include <ESP8266mDNS.h>
 #include <EEPROM.h>
 #include "Storage.h"
 #include "Bondibar.h"
 #include "Configuration.h"
 #include "Streaming.h"
-#include "ConfigurationServer.h"
+#include "ControlServer.h"
 #include "utils.h"
 #include "WifiManager.h"
 #include "APServer.h"
@@ -28,7 +27,8 @@ struct Modules{
     configuration->Device->managedPixelsQty = 8;
     configuration->Device->firstPixel = configuration->Device->number*configuration->Device->managedPixelsQty;
     configuration->Streaming->port = 7788;
-    configuration->ConfigurationServer->discoveryPort = 9999;
+    configuration->ControlServer->discoveryPort = 8888;
+    configuration->ControlServer->port = 8889;
 
     /* read configs from EEPROM */
     singleton(Storage)->readSSIDAndPassword(configuration->Wifi->ssid,configuration->Wifi->password);
@@ -38,7 +38,7 @@ struct Modules{
     ap = singleton(APServer);
     wifiManager = singleton(WifiManager);
     streaming = singleton(Streaming);
-    // configurationServer = singleton(ConfigurationServer);
+    controlServer = singleton(ControlServer);
     bondibar = singleton(Bondibar); 
     clock = singleton(TimeClock);
   }
@@ -47,7 +47,7 @@ struct Modules{
   APServer* ap;
   WifiManager* wifiManager;
   Streaming* streaming;
-  ConfigurationServer* configurationServer;
+  ControlServer* controlServer;
   Bondibar* bondibar;
   TimeClock* clock; 
 };
@@ -111,45 +111,53 @@ void loop() {
 
     modules->bondibar->sendData(playFrame->data,playFrame->len);
     delete playFrame;
+
+  }else if (modules->controlServer->incomingCommand()){
     
-  }else if (!modules->streaming->active){
-
-    int size = udpRecv.parsePacket();
-    if (size){
-
-      Serial.println("hay paquete!");
-
-      udpRecv.read(buffer,size);
-      buffer[size] = '\0';
-
-      String command(buffer);
-
-      Serial.println(command);
-
-      if (command == "clock_request"){
-
-        /* master is requesting my time */
-        long t = modules->clock->time();
-        Serial.println("time requested! " + String(t));
-
-        IPAddress ip(192,168,1,100);
-        int res = udpSend.beginPacket(ip,8889);
-        String data(t);
-        udpSend.write(data.c_str(),data.length());
-        udpSend.endPacket();
-
-      }else if (command.startsWith("adjust_clock")){
-
-        vector<String> split = splitString(command,' ');
-        long offset = split[1].toInt();
-        Serial.println(String("time ") + String(modules->clock->time()));
-        modules->clock->addCorrection(offset);
-        Serial.println(String("time adjsted ") + String(modules->clock->time()));
-      }   
-    }else{
-      modules->ap->handleClient();
-    }
+    modules->controlServer->processCommand();
+    
   }
+  
+//  else if (!modules->streaming->active){
+//
+//    // this should be a command
+//
+//    int size = udpRecv.parsePacket();
+//    if (size){
+//
+//      Serial.println("hay paquete!");
+//
+//      udpRecv.read(buffer,size);
+//      buffer[size] = '\0';
+//
+//      String command(buffer);
+//
+//      Serial.println(command);
+//
+//      if (command == "clock_request"){
+//
+//        /* master is requesting my time */
+//        long t = modules->clock->time();
+//        Serial.println("time requested! " + String(t));
+//
+//        IPAddress ip(192,168,1,100);
+//        int res = udpSend.beginPacket(ip,8889);
+//        String data(t);
+//        udpSend.write(data.c_str(),data.length());
+//        udpSend.endPacket();
+//
+//      }else if (command.startsWith("adjust_clock")){
+//
+//        vector<String> split = splitString(command,' ');
+//        long offset = split[1].toInt();
+//        Serial.println(String("time ") + String(modules->clock->time()));
+//        modules->clock->addCorrection(offset);
+//        Serial.println(String("time adjsted ") + String(modules->clock->time()));
+//      }   
+//    }else{
+//      modules->ap->handleClient();
+//    }
+//  }
 
 
 
