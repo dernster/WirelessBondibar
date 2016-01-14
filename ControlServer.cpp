@@ -18,7 +18,7 @@ void ControlServer::setup(){
     delete [] buffer;
   if (server)
     delete server;
-  server = new WiFiServer(WiFi.localIP(),configuration->ControlServer->port);
+  server = new WiFiServer(configuration->ControlServer->port);
   server->begin();
   buffer = new char[configuration->ControlServer->packetLength];
   obtainServerEndpoint();
@@ -30,6 +30,7 @@ bool ControlServer::incomingCommand(){
 
 void ControlServer::processCommand(){
   SenderoControlHeader header;
+  Serial.println(header.size());
   client.readBytes((byte*)&header,header.size());
   Serial.println(header.toString());
   commandReceivedFlashLed();
