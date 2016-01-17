@@ -1,13 +1,13 @@
 #include "Arduino.h"
+#include <typeinfo>
 
 #include <stdarg.h>
 #include <vector>
 using namespace std;
 
-
 class Config;
-typedef void (*setterPtr)(Config* intance,const String& value);
-typedef String (*getterPtr)(Config* intance);
+typedef void (*setterPtr)(void* intance,const String& value);
+typedef String (*getterPtr)(void* intance);
 
 class Variable{
 public:
@@ -20,7 +20,6 @@ public:
   setterPtr setter;
   getterPtr getter;  
 };
-
 
 class Config{
 public:
@@ -75,16 +74,41 @@ public:
 #define VA_NUM_ARGS(...) VA_NUM_ARGS_IMPL(__VA_ARGS__, 10,9,8,7,6,5,4,3,2,1)
 #define VA_NUM_ARGS_IMPL(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,N,...) N
 
-#define setter
-#define getter
+#define var(type,name,setBody,getBody)\
+private:\
+  typedef type name ## __TYPE;\
+public:\
+type name; setterHeader(name,setBody); getterHeader(name,getBody);
 
-#define var(name,sett,gett)\
-name; setterHeader(name)sett; getterHeader(name)gett;
+#define readOnly(type,name,getBody)\
+private:\
+  typedef type name ## __TYPE;\
+public:\
+type name; setterHeader(name,{}); getterHeader(name,getBody);
 
+//---------------------------
+
+#define FE_1(WHAT, X)       WHAT(X) 
+#define FE_2(WHAT, X, ...)  WHAT(X)FE_1(WHAT, __VA_ARGS__)
+#define FE_3(WHAT, X, ...)  WHAT(X)FE_2(WHAT, __VA_ARGS__)
+#define FE_4(WHAT, X, ...)  WHAT(X)FE_3(WHAT, __VA_ARGS__)
+#define FE_5(WHAT, X, ...)  WHAT(X)FE_4(WHAT, __VA_ARGS__)
+#define FE_6(WHAT, X, ...)  WHAT(X)FE_5(WHAT, __VA_ARGS__)
+#define FE_7(WHAT, X, ...)  WHAT(X)FE_6(WHAT, __VA_ARGS__)
+#define FE_8(WHAT, X, ...)  WHAT(X)FE_7(WHAT, __VA_ARGS__)
+#define FE_9(WHAT, X, ...)  WHAT(X)FE_8(WHAT, __VA_ARGS__)
+#define FE_10(WHAT, X, ...) WHAT(X)FE_9(WHAT, __VA_ARGS__)
+//... repeat as needed
+
+#define GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,NAME,...) NAME 
+#define FOR_EACH(action,...) \
+  GET_MACRO(__VA_ARGS__,FE_10,FE_9,FE_8,FE_7,FE_6,FE_5,FE_4,FE_3,FE_2,FE_1)(action,__VA_ARGS__)
+  
 //--------------------------
 
-#define functions(...)\
-Variable array[VA_NUM_ARGS(__VA_ARGS__)] = __VA_ARGS__;\
+
+#define expose(...)\
+Variable array[VA_NUM_ARGS(__VA_ARGS__)] = {FOR_EACH(bind,__VA_ARGS__)};\
 \
 Variable* getMapper(){\
   return array;\
@@ -98,27 +122,39 @@ int getMapperLength(){\
 
 
 #define bind(var)\
-Variable(#var,&setterFuncName(var),&getterFuncName(var))
+Variable(#var,&setterFuncName(var),&getterFuncName(var)),
 
 
 #define setterFuncName(name) set_ ## name
 #define getterFuncName(name) get_ ## name
 
-#define setterHeader(name)\
-static void setterFuncName(name)(Config* instance, const String& value)
+#define setterHeader(name,body)\
+static void setterFuncName(name)(void* instance, const String& value){\
+  ThisClass& configs = *cast(instance);\
+  name ## __TYPE& config = configs.name;\
+  body\
+}\
 
-#define getterHeader(name)\
-static String getterFuncName(name)(Config* instance)
+#define getterHeader(name,body)\
+static String getterFuncName(name)(void* instance){\
+  ThisClass& configs = *cast(instance);\
+  name ## __TYPE& config = configs.name;\
+  body\
+}\
 
-#define __config (*cast(instance))
+
+
+
 
 //--------------------------
 
 // class macro
 #define DefineConfig(Name,...)\
-class _ ## Name : public Config {\
+class _ ## Name : public Config{\
+private:\
+  typedef _ ## Name ThisClass;\
 public:\
-static _ ## Name* cast(Config* instance){\
+static _ ## Name* cast(void* instance){\
     return (_ ## Name*) instance;\
 }\
 \
@@ -131,5 +167,9 @@ __VA_ARGS__\
 \
 };
 
+
+
+
+  
 
 

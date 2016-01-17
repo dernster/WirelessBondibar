@@ -6,197 +6,182 @@
 
 //-------------Wifi---------------
 
+
 DefineConfig( Wifi,
 
-  String var(ssid,
-  setter{
-    __config.ssid = value;
+  expose(
+      ssid,
+      password,
+      ip
+  );
+
+  var( String, ssid,
+  {
+    config = value;
   },
-  getter{
-    return __config.ssid;
+  {
+    return config;
   })
 
-  String var(password,
-  setter{
-    __config.password = value;
+  var( String, password,
+  {
+    config = value;
   },
-  getter{
-    return __config.password;
+  {
+    return config;
   })
 
-  String var(ip,
-  setter{
-    /* read only */
-  },
-  getter{
-    return __config.ip;
+  readOnly( String, ip,
+  {
+    return config;
   })
-
-  functions({
-      bind(ssid),
-      bind(password),
-      bind(ip)
-  });
 )
 
 //-------------ConfigurationServer---------------
 
 DefineConfig( ControlServer,
-  
-  String var(ip,
-  setter{
-    __config.ip = value;
-  },
-  getter{
-    return __config.ip;
-  })
-  
-  int var(port,
-  setter{
-    __config.port = value.toInt();
-  },
-  getter{
-    return String(__config.port);
-  })
-  
-  int var(discoveryPort,
-  setter{
-    __config.discoveryPort = value.toInt();
-  },
-  getter{
-    return String(__config.discoveryPort);
-  })
-  
-  int var(packetLength,
-  setter{
-    __config.packetLength = value.toInt();
-  },
-  getter{
-    return String(__config.packetLength);
-  })
 
-  functions({
-      bind(ip),
-      bind(port),
-      bind(discoveryPort),
-      bind(packetLength)
-  });
+  
+  expose(
+      ip,
+      port,
+      discoveryPort,
+      packetLength
+  );
+  
+  var( String, ip,
+  {
+    config = value;
+  },
+  {
+    return config;
+  })
+  
+  var( int, port,
+  {
+    config = value.toInt();
+  },
+  {
+    return String(config);
+  })
+  
+  var( int, discoveryPort,
+  {
+    config = value.toInt();
+  },
+  {
+    return String(config);
+  })
+  
+  var( int, packetLength,
+  {
+    config = value.toInt();
+  },
+  {
+    return String(config);
+  })
 );
 
 //-------------Device---------------
 
 DefineConfig( Device,
+
+  expose(
+      number,
+      managedPixelsQty,
+      firstPixel
+  );
   
-  int var(number,
-  setter{
-    /* read only */
-  },
-  getter{
-    return String(__config.number);
+  readOnly( int, number,
+  {
+    return String(config);
   })
 
-  int var(managedPixelsQty,
-  setter{
-    __config.managedPixelsQty = value.toInt();
+  var( int, managedPixelsQty,
+  {
+    config = value.toInt();
   },
-  getter{
-    return String(__config.managedPixelsQty);
+  {
+    return String(config);
   })
 
-  int var(firstPixel,
-  setter{
-    __config.firstPixel = value.toInt();
+  var( int, firstPixel,
+  {
+    config = value.toInt();
   },
-  getter{
-    return String(__config.firstPixel);
+  {
+    return String(config);
   })
- 
-  functions({
-      bind(number),
-      bind(managedPixelsQty),
-      bind(firstPixel)
-  });
 );
 
 
 //-------------Streaming---------------
 
 DefineConfig( Streaming,
+
+  expose(
+      port
+  );
   
-  int var(port,
-  setter{
-    __config.port = value.toInt();
+  var( int, port,
+  {
+    config = value.toInt();
   },
-  getter{
-    return String(__config.port);
+  {
+    return String(config);
   })
- 
-  functions({
-      bind(port)
-  });
 );
 
 
 //-------------Stats---------------
 
 DefineConfig( Stats,
+
+  expose(
+      bitRate,
+      streamingQueueMeanSize,
+      playbackMeanDelay,
+      playbackMaxDelay
+  );
   
-  float var(bitRate,
-  setter{
-    /* read only */
-  },
-  getter{
-    return String(__config.bitRate) + " kbps";
+  readOnly( float, bitRate,
+  {
+    return String(config) + " kbps";
   })
 
-  float var(streamingQueueMeanSize,
-  setter{
-    /* read only */
-  },
-  getter{
-    return String(__config.streamingQueueMeanSize) + " frames";
+  readOnly( float, streamingQueueMeanSize,
+  {
+    return String(config) + " frames";
   })
  
-  float var(playbackMeanDelay,
-  setter{
-    /* read only */
-  },
-  getter{
-    return String(__config.playbackMeanDelay) + " milliseconds";
+  readOnly( float, playbackMeanDelay,
+  {
+    return String(config) + " milliseconds";
   })
 
-  float var(playbackMaxDelay,
-  setter{
-    /* read only */
-  },
-  getter{
-    return String(__config.playbackMaxDelay) + " milliseconds";
+  readOnly( float, playbackMaxDelay,
+  {
+    return String(config) + " milliseconds";
   })
-
-  functions({
-      bind(bitRate),
-      bind(streamingQueueMeanSize),
-      bind(playbackMeanDelay),
-      bind(playbackMaxDelay)
-  });
 );
 
 //-------------Global---------------
 
 DefineConfig( Global,
   
-  int var(pixelsQty,
-  setter{
-    __config.pixelsQty = value.toInt();
+  var( int, pixelsQty,
+  {
+    config = value.toInt();
   },
-  getter{
-    return String(__config.pixelsQty);
+  {
+    return String(config);
   })
  
-  functions({
-      bind(pixelsQty)
-  });
+  expose(
+      pixelsQty
+  );
 );
+
 
 class ConfigurationObserver{
 public:
