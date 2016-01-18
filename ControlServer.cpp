@@ -1,6 +1,7 @@
 #include "ControlServer.h"
 #include "APServer.h"
 #include <vector>
+#include "TimeClock.h"
 using namespace std;
 
 SINGLETON_CPP(ControlServer)
@@ -33,7 +34,34 @@ void ControlServer::processCommand(){
   Serial.println(header.size());
   client.readBytes((byte*)&header,header.size());
   Serial.println(header.toString());
-  commandReceivedFlashLed();
+
+  TimeClock* clock = singleton(TimeClock);
+
+  // parse command
+  
+  if (header.requestClockFlag){
+
+    time_r currentTime = clock->time();
+    header.isResponse = true;
+
+    byte time[4];
+    writeBuffer<time_r>(time,currentTime);
+
+    client.write((uint8_t*)&header,header.size());
+    client.write((uint8_t*)&time,sizeof(time)); 
+    
+  }else if (header.clockCorrectionOffsetFlag){
+
+    byte offsetBytes[4];
+    client.readBytes((byte*)offsetBytes,4);
+    long offset = readBuffer<long>(offsetBytes);
+    Serial.println(String("offset received = ") + String(offset));
+    clock->addCorrection(offset);
+    Serial.println(String("time adjsted ") + String(clock->time()));
+  }
+
+  
+//  commandReceivedFlashLed();
 }
 
 void ControlServer::obtainServerEndpoint(){
@@ -85,4 +113,22 @@ void ControlServer::configurationChanged(){
   Serial.println("ControlServer::configurationChanged()");
   setup();
 }
+
+template<typename T> T ControlServer::readBuffer(void* buffer){
+  int size = sizeof(T);
+  T result = 0;
+  for(int i = 0; i < size; i++){
+    byte b = ((byte*)buffer)[i];
+    result |= (b << (i*8));
+  }
+  return result;
+}
+
+template<typename T> void ControlServer::writeBuffer(void* buffer, T data){
+  int size = sizeof(T);
+  for(int i = 0; i < size; i++){
+    ((byte*)buffer)[i] = (byte)((data >> (i*8)) & 0xFF);
+  }
+}
+
 

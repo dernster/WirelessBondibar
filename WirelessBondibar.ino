@@ -116,6 +116,9 @@ void loop() {
     
     modules->controlServer->processCommand();
     
+  }else{
+
+    modules->ap->handleClient();
   }
   
 //  else if (!modules->streaming->active){

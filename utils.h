@@ -5,7 +5,7 @@
 #include "Dictionary.h"
 using namespace std;
 
-#define time_r unsigned long
+#define time_r long
 
 #define LED 2
 
