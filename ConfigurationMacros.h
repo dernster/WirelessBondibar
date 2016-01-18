@@ -1,4 +1,5 @@
 #include "Arduino.h"
+#include "Dictionary.h"
 #include <typeinfo>
 
 #include <stdarg.h>
@@ -9,16 +10,45 @@ class Config;
 typedef void (*setterPtr)(void* intance,const String& value);
 typedef String (*getterPtr)(void* intance);
 
-class Variable{
+class StringConvertibleVariable{
 public:
-  Variable(String name, setterPtr setter, getterPtr getter){
+  StringConvertibleVariable(String name, setterPtr setter, getterPtr getter){
     this->name = name;
     this->setter = setter;
     this->getter = getter;
   }
   String name;
   setterPtr setter;
-  getterPtr getter;  
+  getterPtr getter;
+  
+  virtual void persist(){
+    
+  }
+  virtual bool isPersistent(){
+    return false;
+  }
+};
+
+template<class T>
+class Variable: public StringConvertibleVariable{
+public:
+  Variable(T* variable, String name, setterPtr setter, getterPtr getter): StringConvertibleVariable(name,setter,getter){
+    this->variable = variable;
+  }
+  T* variable;
+
+  virtual void persist(){};
+};
+
+template<class T>
+class PersistentVariable : public Variable<T>{
+public:
+  PersistentVariable(T* variable, String name, setterPtr setter, getterPtr getter, int size): Variable<T>(variable,name,setter,getter){
+  }
+  virtual void persist(){
+    Serial.println("Persisting variable = " + String(*Variable<T>::variable));
+  }
+  int address;
 };
 
 class Config{
@@ -32,7 +62,7 @@ public:
     
   setterPtr getSetterFunction(const String& tag){
     int size = getMapperLength();
-    Variable* array = getMapper();
+    StringConvertibleVariable* array = getMapper();
     for (int i = 0; i < size; i++){
       if (tag == getTag(array[i].name)){
         return array[i].setter;
@@ -48,7 +78,7 @@ public:
   Dictionary toDictionary(){
     Dictionary result;
     int size = getMapperLength();
-    Variable* array = getMapper();
+    StringConvertibleVariable* array = getMapper();
     for (int i = 0; i < size; i++){
       result[getTag(array[i].name)] = array[i].getter(this);
     }
@@ -58,7 +88,7 @@ public:
   String toString(){
     String result = getPrefix() + ":\n";
     int size = getMapperLength();
-    Variable* array = getMapper();
+    StringConvertibleVariable* array = getMapper();
     for (int i = 0; i < size; i++){
       result += "\t" + array[i].name + ": " + array[i].getter(this) + "\n";
     }
@@ -66,7 +96,7 @@ public:
   }
   
   virtual String getPrefix() = 0;
-  virtual Variable* getMapper() = 0;
+  virtual StringConvertibleVariable* getMapper() = 0;
   virtual int getMapperLength() = 0;
 };
 
@@ -79,6 +109,18 @@ private:\
   typedef type name ## __TYPE;\
 public:\
 type name; setterHeader(name,setBody); getterHeader(name,getBody);
+
+#define persistentVar(type,name,setBody,getBody)\
+private:\
+  typedef type name ## __TYPE;\
+public:\
+type name; setterHeader(name,setBody); getterHeader(name,getBody);\
+void persist_ ## name(){\
+  StringConvertibleVariable* var = map(#name);\
+  if (var){\
+    var->persist();\
+  }\
+}
 
 #define readOnly(type,name,getBody)\
 private:\
@@ -108,9 +150,9 @@ type name; setterHeader(name,{}); getterHeader(name,getBody);
 
 
 #define expose(...)\
-Variable array[VA_NUM_ARGS(__VA_ARGS__)] = {FOR_EACH(bind,__VA_ARGS__)};\
+StringConvertibleVariable array[VA_NUM_ARGS(__VA_ARGS__)] = {FOR_EACH(bind,__VA_ARGS__)};\
 \
-Variable* getMapper(){\
+StringConvertibleVariable* getMapper(){\
   return array;\
 }\
 \
@@ -122,7 +164,7 @@ int getMapperLength(){\
 
 
 #define bind(var)\
-Variable(#var,&setterFuncName(var),&getterFuncName(var)),
+Variable<var ## __TYPE>(&var,#var,&setterFuncName(var),&getterFuncName(var)),
 
 
 #define setterFuncName(name) set_ ## name
@@ -133,6 +175,10 @@ static void setterFuncName(name)(void* instance, const String& value){\
   ThisClass& configs = *cast(instance);\
   name ## __TYPE& config = configs.name;\
   body\
+  StringConvertibleVariable* var = configs.map(#name);\
+  if (var){\
+    var->persist();\
+  }\
 }\
 
 #define getterHeader(name,body)\
@@ -153,6 +199,14 @@ static String getterFuncName(name)(void* instance){\
 class _ ## Name : public Config{\
 private:\
   typedef _ ## Name ThisClass;\
+  StringConvertibleVariable* map(String key){\
+    for(int i = 0; i < getMapperLength(); i++){\
+      if (array[i].name == key){\
+        return &array[i];\
+      }\
+      return NULL;\
+    }\
+  }\
 public:\
 static _ ## Name* cast(void* instance){\
     return (_ ## Name*) instance;\
