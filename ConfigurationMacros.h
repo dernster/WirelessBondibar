@@ -1,5 +1,6 @@
 #include "Arduino.h"
 #include "Dictionary.h"
+#include <EEPROM.h>
 #include <typeinfo>
 
 #include <stdarg.h>
@@ -21,12 +22,9 @@ public:
   setterPtr setter;
   getterPtr getter;
   
-  virtual void persist(){
-    
-  }
-  virtual bool isPersistent(){
-    return false;
-  }
+  virtual void persist(){}
+
+  static int persistentVariablesSize;
 };
 
 template<class T>
@@ -40,13 +38,49 @@ public:
   virtual void persist(){};
 };
 
+#define STR_SIZE 20
 template<class T>
 class PersistentVariable : public Variable<T>{
 public:
+  bool isString;
   PersistentVariable(T* variable, String name, setterPtr setter, getterPtr getter, int size): Variable<T>(variable,name,setter,getter){
+    isString = std::is_same<T, String>::value;
+    address = StringConvertibleVariable::persistentVariablesSize;
+    StringConvertibleVariable::persistentVariablesSize += isString? STR_SIZE : sizeof(*variable);
+
+    // read variable
+    EEPROM.begin(isString? STR_SIZE : sizeof(T));
+    if (isString){
+      char str[STR_SIZE];
+      EEPROM.get<char[STR_SIZE]>(address,str);
+      *variable = String(str);
+    }else{
+      EEPROM.get<T>(address,*Variable<T>::variable);
+    }
+    EEPROM.end();
+
+    if (StringConvertibleVariable::persistentVariablesSize > 512){
+      Serial.println("WARNING! persistent vars exceed EEPROM size");
+    }
   }
   virtual void persist(){
+    EEPROM.begin(isString? STR_SIZE : sizeof(T));
     Serial.println("Persisting variable = " + String(*Variable<T>::variable));
+    if (!isString){
+      EEPROM.put<T>(address,*Variable<T>::variable);
+    }else{
+      char str[STR_SIZE];
+      String* var = (String*)Variable<T>::variable;
+      for(int i = 0; i < STR_SIZE; i++){
+        if (i < var->length()){
+          str[i] = var->charAt(i);
+        }else{
+          str[i] = '\0'; 
+        }
+      }
+      EEPROM.put<char[STR_SIZE]>(address,str);
+    }
+    EEPROM.end();
   }
   int address;
 };
