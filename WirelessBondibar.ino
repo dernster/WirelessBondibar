@@ -105,10 +105,12 @@ void loop() {
 
   if (modules->streaming->frame()){
 
+//    Serial.println("frame!");
     modules->streaming->bufferFrame();
 
   }else if((playFrame = modules->streaming->frameToPlay()) != NULL){
 
+//    Serial.println("play!");
     modules->bondibar->sendData(playFrame->data,playFrame->len);
     delete playFrame;
 

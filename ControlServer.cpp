@@ -31,9 +31,9 @@ bool ControlServer::incomingCommand(){
 
 void ControlServer::processCommand(){
   SenderoControlHeader header;
-  Serial.println(header.size());
+//  Serial.println(header.size());
   client.readBytes((byte*)&header,header.size());
-  Serial.println(header.toString());
+//  Serial.println(header.toString());
 
   TimeClock* clock = singleton(TimeClock);
 
@@ -55,9 +55,9 @@ void ControlServer::processCommand(){
     byte offsetBytes[4];
     client.readBytes((byte*)offsetBytes,4);
     long offset = readBuffer<long>(offsetBytes);
-    Serial.println(String("offset received = ") + String(offset));
+//    Serial.println(String("offset received = ") + String(offset));
     clock->addCorrection(offset);
-    Serial.println(String("time adjsted ") + String(clock->time()));
+//    Serial.println(String("time adjsted ") + String(clock->time()));
   }
 
   
@@ -77,6 +77,7 @@ void ControlServer::obtainServerEndpoint(){
     ap->handleClient();
         
     // send broadcast packet asking IP and Port of server
+    Serial.println("Sending message to register");
     IPAddress ip = WiFi.localIP();
     ip[3] = 255;
     int res = udp.beginPacket(ip,configuration->ControlServer->discoveryPort);
@@ -89,12 +90,16 @@ void ControlServer::obtainServerEndpoint(){
     LOOP_UNTIL(2000){
       /* allow connections from AP */
       ap->handleClient();
-      if (!client.connected()){
-        client = server->available();
-      }else{
+      if (client = server->available()){
         Serial.println("got client!");
         return;
       }
+//      if (!client.connected()){
+//        client = server->available();
+//      }else{
+//        Serial.println("got client!");
+//        return;
+//      }
     }
   }
 }
