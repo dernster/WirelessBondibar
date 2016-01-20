@@ -15,7 +15,7 @@ DefineConfig( Wifi,
       ip
   );
 
-  var( String, ssid,
+  persistentVar( String, ssid,
   {
     config = value;
   },
@@ -23,7 +23,7 @@ DefineConfig( Wifi,
     return config;
   })
 
-  var( String, password,
+  persistentVar( String, password,
   {
     config = value;
   },

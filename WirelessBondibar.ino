@@ -31,7 +31,7 @@ struct Modules{
     configuration->ControlServer->port = 8889;
 
     /* read configs from EEPROM */
-    singleton(Storage)->readSSIDAndPassword(configuration->Wifi->ssid,configuration->Wifi->password);
+//    singleton(Storage)->readSSIDAndPassword(configuration->Wifi->ssid,configuration->Wifi->password);
     configuration->Device->number = singleton(Storage)->readDeviceID();
 
     /* create modules */

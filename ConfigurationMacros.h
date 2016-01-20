@@ -8,10 +8,19 @@
 using namespace std;
 
 class Config;
+class IPersistentVariable;
 typedef void (*setterPtr)(void* intance,const String& value);
 typedef String (*getterPtr)(void* intance);
 
-class StringConvertibleVariable{
+class Type{
+public:
+  enum Types{PERSISTENT_VAR,VAR};
+  virtual Types type(){
+    return Types::VAR;
+  }
+};
+
+class StringConvertibleVariable: public Type{
 public:
   StringConvertibleVariable(String name, setterPtr setter, getterPtr getter){
     this->name = name;
@@ -22,8 +31,12 @@ public:
   setterPtr setter;
   getterPtr getter;
   
-  virtual void persist(){}
-
+  IPersistentVariable* asPersistentVariable(){
+    if (type() == Types::PERSISTENT_VAR){
+      return (IPersistentVariable*) this;
+    }
+    return NULL;
+  }
   static int persistentVariablesSize;
 };
 
@@ -34,16 +47,23 @@ public:
     this->variable = variable;
   }
   T* variable;
-
-  virtual void persist(){};
 };
+
+class IPersistentVariable: public Type{
+public:
+  virtual void persist() = 0;
+  virtual Types type(){
+    return Types::PERSISTENT_VAR;
+  }
+};
+
 
 #define STR_SIZE 20
 template<class T>
-class PersistentVariable : public Variable<T>{
+class PersistentVariable : public Variable<T>, IPersistentVariable{
 public:
   bool isString;
-  PersistentVariable(T* variable, String name, setterPtr setter, getterPtr getter, int size): Variable<T>(variable,name,setter,getter){
+  PersistentVariable(T* variable, String name, setterPtr setter, getterPtr getter): Variable<T>(variable,name,setter,getter){
     isString = std::is_same<T, String>::value;
     address = StringConvertibleVariable::persistentVariablesSize;
     StringConvertibleVariable::persistentVariablesSize += isString? STR_SIZE : sizeof(*variable);
@@ -141,24 +161,21 @@ public:
 #define var(type,name,setBody,getBody)\
 private:\
   typedef type name ## __TYPE;\
+  typedef Variable<type> name ## __META_TYPE;\
 public:\
 type name; setterHeader(name,setBody); getterHeader(name,getBody);
 
 #define persistentVar(type,name,setBody,getBody)\
 private:\
   typedef type name ## __TYPE;\
+  typedef PersistentVariable<type> name ## __META_TYPE;\
 public:\
-type name; setterHeader(name,setBody); getterHeader(name,getBody);\
-void persist_ ## name(){\
-  StringConvertibleVariable* var = map(#name);\
-  if (var){\
-    var->persist();\
-  }\
-}
+type name; setterHeader(name,setBody); getterHeader(name,getBody);
 
 #define readOnly(type,name,getBody)\
 private:\
   typedef type name ## __TYPE;\
+  typedef Variable<type> name ## __META_TYPE;\
 public:\
 type name; setterHeader(name,{}); getterHeader(name,getBody);
 
@@ -198,7 +215,7 @@ int getMapperLength(){\
 
 
 #define bind(var)\
-Variable<var ## __TYPE>(&var,#var,&setterFuncName(var),&getterFuncName(var)),
+var ## __META_TYPE(&var,#var,&setterFuncName(var),&getterFuncName(var)),
 
 
 #define setterFuncName(name) set_ ## name
@@ -210,8 +227,8 @@ static void setterFuncName(name)(void* instance, const String& value){\
   name ## __TYPE& config = configs.name;\
   body\
   StringConvertibleVariable* var = configs.map(#name);\
-  if (var){\
-    var->persist();\
+  if (IPersistentVariable* pv = var->asPersistentVariable()){\
+    pv->persist();\
   }\
 }\
 
