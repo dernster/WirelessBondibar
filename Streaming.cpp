@@ -66,7 +66,7 @@ void Streaming::configurationChanged(){
 
 void Streaming::bufferFrame(){
 
-  static unsigned long expectedSeq = 0;
+  static short unsigned int expectedSeq = 0;
 
   int size = udp.read(dataBuffer, packetSize);
   bytesReceived += size + 8 + 20;

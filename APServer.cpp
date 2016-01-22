@@ -18,7 +18,7 @@ APServer::APServer() : server(80){
   Serial.println(myIP);
   server.on("/", handleRoot);
   server.on("/save", HTTP_POST,handleSave);
-  server.begin();
+//  server.begin();
   Serial.println("HTTP server started");
 }
 

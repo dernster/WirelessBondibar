@@ -7,6 +7,15 @@
 #pragma pack(push)
 #pragma pack(1)
 struct SenderoControlHeader{
+
+  enum Command {
+    
+    REQUEST_CLOCK,
+    CLOCK_CORRECTION,
+    CONFIGURATION,
+    CLOSE_CONNECTION,
+    NO_COMMAND,
+  };
   
   char packetName[7];
   union{
@@ -14,12 +23,23 @@ struct SenderoControlHeader{
       bool requestClockFlag :1;
       bool clockCorrectionOffsetFlag :1;
       bool configurationFlag :1;
-      int  padding :4;
-      bool isResponse :1;
+      bool closeConnectionFlag :1;
+      int  padding :5;
     };
     byte falgs;
   };
-  
+
+  Command type(){
+    if (requestClockFlag)
+      return REQUEST_CLOCK;
+    if (clockCorrectionOffsetFlag)
+      return CLOCK_CORRECTION;
+    if (configurationFlag)
+      return CONFIGURATION;
+    if (closeConnectionFlag)
+      return CLOSE_CONNECTION;
+    return NO_COMMAND;
+  }
 
   int size(){
     return sizeof(SenderoControlHeader);
@@ -55,7 +75,7 @@ private:
 public:
   ControlServer();
   bool incomingCommand();
-  void processCommand();
+  SenderoControlHeader::Command processCommand();
   void obtainServerEndpoint();
   void configurationChanged();
   void commandReceivedFlashLed();

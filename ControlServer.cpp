@@ -7,42 +7,66 @@ using namespace std;
 SINGLETON_CPP(ControlServer)
 
 ControlServer::ControlServer(){
+  Serial.println("1");
   configuration = singleton(Configuration);
+  Serial.println("2");
   configuration->addObserver(this);
+  Serial.println("3");
   buffer = NULL;
+  server = NULL;
   setup();
 }
 
 void ControlServer::setup(){
+  Serial.println("4");
   serverDiscovered = false;
   if (buffer)
     delete [] buffer;
+  Serial.println("5");
   if (server)
     delete server;
+  Serial.println("6");
   server = new WiFiServer(configuration->ControlServer->port);
+  Serial.println("7");
   server->begin();
+  Serial.println("8");
   buffer = new char[configuration->ControlServer->packetLength];
+  Serial.println("9");
   obtainServerEndpoint();
+  Serial.println("10");
 }
 
 bool ControlServer::incomingCommand(){
-  return client.available();
+  if (client.connected()){
+    return client.available();
+  }else{
+    client = server->available();
+    return client.connected() && client.available();
+  }
 }
 
-void ControlServer::processCommand(){
+SenderoControlHeader::Command ControlServer::processCommand(){
+  if (!client.connected()){
+    Serial.println("NO CONNECTION!!!");
+  }
+  
   SenderoControlHeader header;
-//  Serial.println(header.size());
-  client.readBytes((byte*)&header,header.size());
-//  Serial.println(header.toString());
+  int qty = client.readBytes((byte*)&header,header.size());
+  if (qty != header.size()){
+    Serial.println("Lei menos del cabezal!!!!");
+  }
+
+  SenderoControlHeader::Command command = header.type();
 
   TimeClock* clock = singleton(TimeClock);
 
   // parse command
+
+  switch (command) {
   
-  if (header.requestClockFlag){
+  case SenderoControlHeader::Command::REQUEST_CLOCK:{
 
     time_r currentTime = clock->time();
-    header.isResponse = true;
 
     byte time[4];
     writeBuffer<time_r>(time,currentTime);
@@ -50,18 +74,47 @@ void ControlServer::processCommand(){
     client.write((uint8_t*)&header,header.size());
     client.write((uint8_t*)&time,sizeof(time)); 
     
-  }else if (header.clockCorrectionOffsetFlag){
+    break;
+  }
+  case SenderoControlHeader::Command::CLOCK_CORRECTION:{
 
     byte offsetBytes[4];
     client.readBytes((byte*)offsetBytes,4);
     long offset = readBuffer<long>(offsetBytes);
-//    Serial.println(String("offset received = ") + String(offset));
     clock->addCorrection(offset);
-//    Serial.println(String("time adjsted ") + String(clock->time()));
+    break;
+  }
+  case SenderoControlHeader::Command::CONFIGURATION:{
+
+    int i = 0;
+    while(true){
+      byte b = client.read();
+      if (b == -1)
+        continue;
+
+      buffer[i] = (char)b;
+      
+      if (buffer[i] == '\0'){    
+        break;
+      }
+      i++;
+    }
+
+    String configs = String(buffer);
+    Dictionary dict = parseParameters(configs);
+    configuration->setValues(dict,false);
+
+    Serial.println(String("Configs setted! ") + configs);
+    break;
+  }
+  case SenderoControlHeader::Command::CLOSE_CONNECTION:{
+    client.stop();
+    Serial.println("Connection closed!");
+    break;
+  }
   }
 
-  
-//  commandReceivedFlashLed();
+  return header.type();
 }
 
 void ControlServer::obtainServerEndpoint(){
@@ -92,14 +145,23 @@ void ControlServer::obtainServerEndpoint(){
       ap->handleClient();
       if (client = server->available()){
         Serial.println("got client!");
+
+        Serial.println("waiting for configurations and clockSync...");
+
+        /* receive initial configuration */
+        bool configurationReceived = false;
+        bool clockSync = false;
+        while (!configurationReceived || !clockSync){
+          if (incomingCommand()){
+            SenderoControlHeader::Command type = processCommand();
+            configurationReceived = type == SenderoControlHeader::Command::CONFIGURATION;
+            clockSync = type == SenderoControlHeader::Command::CLOCK_CORRECTION;
+          }
+        }
+
+        Serial.println("Going for streaming!");
         return;
       }
-//      if (!client.connected()){
-//        client = server->available();
-//      }else{
-//        Serial.println("got client!");
-//        return;
-//      }
     }
   }
 }
