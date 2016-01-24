@@ -9,6 +9,8 @@ private:
   Configuration* configuration;
   void setup();
   bool connected;
+  String ssid;
+  String password;
 public:
   WifiManager();
   void connect();

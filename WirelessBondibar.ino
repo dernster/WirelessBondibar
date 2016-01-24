@@ -17,7 +17,7 @@ extern "C" {
 #include "user_interface.h"
 }
 
-#define DEBUG
+//#define DEBUG
 
 struct Modules{
 
@@ -29,10 +29,6 @@ struct Modules{
     configuration->Streaming->port = 7788;
     configuration->ControlServer->discoveryPort = 8888;
     configuration->ControlServer->port = 8889;
-
-    /* read configs from EEPROM */
-//    singleton(Storage)->readSSIDAndPassword(configuration->Wifi->ssid,configuration->Wifi->password);
-    configuration->Device->number = singleton(Storage)->readDeviceID();
 
     /* create modules */
     ap = singleton(APServer);

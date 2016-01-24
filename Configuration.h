@@ -9,12 +9,6 @@
 
 DefineConfig( Wifi,
 
-  expose(
-      ssid,
-      password,
-      ip
-  );
-
   persistentVar( String, ssid,
   {
     config = value;
@@ -35,20 +29,18 @@ DefineConfig( Wifi,
   {
     return config;
   })
+
+  expose(
+      ssid,
+      password,
+      ip
+  );
 )
 
 //-------------ConfigurationServer---------------
 
 DefineConfig( ControlServer,
 
-  
-  expose(
-      ip,
-      port,
-      discoveryPort,
-      packetLength
-  );
-  
   var( String, ip,
   {
     config = value;
@@ -80,19 +72,23 @@ DefineConfig( ControlServer,
   {
     return String(config);
   })
+
+  expose(
+      ip,
+      port,
+      discoveryPort,
+      packetLength
+  );
 );
 
 //-------------Device---------------
 
 DefineConfig( Device,
-
-  expose(
-      number,
-      managedPixelsQty,
-      firstPixel
-  );
   
-  readOnly( int, number,
+  persistentVar( int, number,
+  {
+    config = value.toInt();
+  },
   {
     return String(config);
   })
@@ -112,17 +108,18 @@ DefineConfig( Device,
   {
     return String(config);
   })
+
+  expose(
+      number,
+      managedPixelsQty,
+      firstPixel
+  );
 );
 
 
 //-------------Streaming---------------
 
 DefineConfig( Streaming,
-
-  expose(
-      port
-  );
-  
   var( int, port,
   {
     config = value.toInt();
@@ -130,20 +127,16 @@ DefineConfig( Streaming,
   {
     return String(config);
   })
+
+  expose(
+      port
+  );
 );
 
 
 //-------------Stats---------------
 
 DefineConfig( Stats,
-
-  expose(
-      bitRate,
-      streamingQueueMeanSize,
-      playbackMeanDelay,
-      playbackMaxDelay
-  );
-  
   readOnly( float, bitRate,
   {
     return String(config) + " kbps";
@@ -163,6 +156,13 @@ DefineConfig( Stats,
   {
     return String(config) + " milliseconds";
   })
+
+  expose(
+      bitRate,
+      streamingQueueMeanSize,
+      playbackMeanDelay,
+      playbackMaxDelay
+  );
 );
 
 //-------------Global---------------
@@ -250,6 +250,15 @@ public:
       res.append(configs[i]->toDictionary());
     }
     return res;
+  }
+
+  vector<IStringConvertibleVariable*> toVars(){
+    vector<IStringConvertibleVariable*> result;
+    for(int i = 0; i < configs.size(); i++){
+      vector<IStringConvertibleVariable*> vars = configs[i]->toVars();
+      result.insert(result.end(),vars.begin(),vars.end());
+    }
+    return result;
   }
 
   void setValue(const String& tag, const String& value){

@@ -41,8 +41,10 @@ void APServer::handleSave(){
     params[ap->server.argName(i)] = ap->server.arg(i);
   }
 
-  Serial.println("Configs saved!");
-  singleton(Configuration)->setValues(params);
+  if (params.size() > 0){
+    Serial.println("Configs saved!");
+    singleton(Configuration)->setValues(params);
+  }
   
 }
 
@@ -59,6 +61,17 @@ String APServer::buildPage(){
 "<h2>" + title + "</h2>"
 ""
 "<script>"
+"var configs = new Array();"
+"function onLoad() {"
+  "var div = document.getElementById(\"customForm\");"
+  "var elms = div.getElementsByTagName(\"input\");"
+  "console.log(elms);"
+  "for(var i = 0, maxI = elms.length; i < maxI; ++i){"
+      "var elm = elms[i];"
+      "configs[i] = elm.value;"
+  "}"
+"}"
+"window.onload = onLoad;"
 "function loadDoc() {"
   "console.log(\"hola!\");"
   "var xhttp = new XMLHttpRequest();"
@@ -69,24 +82,30 @@ String APServer::buildPage(){
   "for(var i = 0, maxI = elms.length; i < maxI; ++i){"
       "var elm = elms[i];"
       "console.log(elm.name + \" \" + elm.value);"
-      "data += elm.name + \"=\" + elm.value + \"&\";"
+      "if (elm.value != configs[i]){"
+        "data += elm.name + \"=\" + elm.value + \"&\";"
+      "}"
   "}"
   "console.log(data);"
-  "xhttp.onreadystatechange = function() {"
-    "if (xhttp.readyState == 4 && xhttp.status == 200) {"
-      "location.reload();document.getElementById(\"demo\").innerHTML = xhttp.responseText;"
-    "}"
-  "};"
-  "xhttp.open(\"POST\", document.URL + \"save\", true);"
-  "xhttp.setRequestHeader(\"Content-type\", \"application/x-www-form-urlencoded\");"
-  "xhttp.send(data);"
-  "var log = document.getElementById(\"log\");"
-  "log.innerHTML = \"Saving...\";"
+  "if (data.length > 0){"
+    "xhttp.onreadystatechange = function() {"
+      "if (xhttp.readyState == 4 && xhttp.status == 200) {"
+        "location.reload();document.getElementById(\"demo\").innerHTML = xhttp.responseText;"
+      "}"
+    "};"
+    "xhttp.open(\"POST\", document.URL + \"save\", true);"
+    "xhttp.setRequestHeader(\"Content-type\", \"application/x-www-form-urlencoded\");"
+    "xhttp.send(data);"
+    "var log = document.getElementById(\"log\");"
+    "log.innerHTML = \"Saving...\";"
+  "} else {"
+    "location.reload();"
+  "}"
 "}"
 "</script>"
 "<div id=\"customForm\">";
 
-  Dictionary dict = conf->toDictionary();
+  vector<IStringConvertibleVariable*> vars = conf->toVars();
   String inputs = ""
   "<table border=\"1\">"
     "<tr>"
@@ -94,13 +113,14 @@ String APServer::buildPage(){
     "<th>Value</th>"
     "</tr>";
 
-  String styleForInput = "STYLE=\"text-align: center; color: #ffffff; font-weight: bold; background-color: #abd0ce;\"";
+  String styleForInput = "STYLE=\"text-align: center; color: #ffffff; font-weight: bold; background-color: #5ba4a0;\"";
+  String styleForPersistentInput = "STYLE=\"text-align: center; color: #ffffff; font-weight: bold; background-color: #407270;\"";
 
-  for(int i = 0; i < dict.size(); i++){
-    StringPair& pair = dict.pairAt(i);
+  for(int i = 0; i < vars.size(); i++){
+    IStringConvertibleVariable* var = vars[i];
     inputs += "<tr>";
-    inputs += "<td>" + pair.first + "</td>"; 
-    inputs += String("<td align=\"center\">") + "<input align=\"middle\"" + styleForInput + " type=\"text\" name=\"" + pair.first +"\" value=\"" + pair.second + "\"><br>" + "</td>";
+    inputs += "<td>" + var->getTag() + "</td>"; 
+    inputs += String("<td align=\"center\">") + "<input align=\"middle\"" + (var->isPersistentVariable() ? styleForPersistentInput : styleForInput) + " type=\"text\" name=\"" + var->getTag() +"\" value=\"" + var->getString() + "\"><br>" + "</td>";
     inputs += "</tr>";
   }
 

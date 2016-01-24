@@ -6,11 +6,68 @@
 #include <stdarg.h>
 #include <vector>
 using namespace std;
-
-class Config;
-class IPersistentVariable;
 typedef void (*setterPtr)(void* intance,const String& value);
 typedef String (*getterPtr)(void* intance);
+
+class IStringConvertibleVariable{
+public:
+  virtual String getString() = 0; 
+  virtual String getTag() = 0;
+  virtual String getName() = 0;
+  virtual bool isPersistentVariable() = 0;
+  virtual void setFromString(const String &value) = 0;
+};
+
+class Config{
+public:
+  void setValue(const String& tag, const String& value){
+    int size = getMapperLength();
+    IStringConvertibleVariable** array = getMapper();
+    for (int i = 0; i < size; i++){
+      if (tag == array[i]->getTag()){
+        array[i]->setFromString(value);
+      }
+    }
+  };
+  
+  String getTag(const String& varName){
+    return getPrefix() + "." + varName;
+  }
+
+  Dictionary toDictionary(){
+    Dictionary result;
+    int size = getMapperLength();
+    IStringConvertibleVariable** array = getMapper();
+    for (int i = 0; i < size; i++){
+      result[array[i]->getTag()] = array[i]->getString();
+    }
+    return result;
+  }
+
+  vector<IStringConvertibleVariable*> toVars(){
+    vector<IStringConvertibleVariable*> result;
+    int size = getMapperLength();
+    IStringConvertibleVariable** array = getMapper();
+    for (int i = 0; i < size; i++){
+      result.push_back(array[i]);
+    }
+    return result;
+  }
+  
+  String toString(){
+    String result = getPrefix() + ":\n";
+    int size = getMapperLength();
+    IStringConvertibleVariable** array = getMapper();
+    for (int i = 0; i < size; i++){
+      result += "\t" + array[i]->getTag() + ": " + array[i]->getString() + "\n";
+    }
+    return result;
+  }
+  
+  virtual String getPrefix() = 0;
+  virtual IStringConvertibleVariable** getMapper() = 0;
+  virtual int getMapperLength() = 0;
+};
 
 class Type{
 public:
@@ -18,78 +75,93 @@ public:
   virtual Types type() = 0;
 };
 
-class StringConvertibleVariable: public Type{
+class StringConvertibleVariable: public IStringConvertibleVariable, public Type{
 public:
-  StringConvertibleVariable(String name, setterPtr setter, getterPtr getter){
+  StringConvertibleVariable(String name, setterPtr setter, getterPtr getter, Config* config){
     this->name = name;
     this->setter = setter;
     this->getter = getter;
+    this->config = config;
   }
-  String name;
-  setterPtr setter;
-  getterPtr getter;
   
-  IPersistentVariable* asPersistentVariable(){
-    if (type() == Types::PERSISTENT_VAR){
-      return (IPersistentVariable*) this;
-    }
-    return NULL;
+  bool isPersistentVariable(){
+    return (type() == Types::PERSISTENT_VAR);
   }
 
   virtual Types type(){
     return Types::VAR;
   }
+
+  String getString(){
+    return getter(config);
+  }
+
+  void setFromString(const String &value){
+    setter(config,value);
+  }
+
+  String getTag(){
+    return config->getTag(name);
+  }
+
+  String getName(){
+    return name;
+  }
   
+  String name;
+  setterPtr setter;
+  getterPtr getter;  
   static int persistentVariablesSize;
+  Config* config;
 };
 
 template<class T>
 class Variable: public StringConvertibleVariable{
 public:
-  Variable(T* variable, String name, setterPtr setter, getterPtr getter): StringConvertibleVariable(name,setter,getter){
+  Variable(T* variable, String name, setterPtr setter, getterPtr getter, Config* config): StringConvertibleVariable(name,setter,getter,config){
     this->variable = variable;
   }
   virtual Types type(){
     return Types::VAR;
   }
+protected:
   T* variable;
 };
 
-class IPersistentVariable: public Type{
-public:
-  virtual void persist() = 0;
-};
-
-
 #define STR_SIZE 20
 template<class T>
-class PersistentVariable : public Variable<T>, IPersistentVariable{
+class PersistentVariable : public Variable<T>{
 public:
   bool isString;
-  PersistentVariable(T* variable, String name, setterPtr setter, getterPtr getter): Variable<T>(variable,name,setter,getter){
+  PersistentVariable(T* variable, String name, setterPtr setter, getterPtr getter, Config* config): Variable<T>(variable,name,setter,getter,config){
     isString = std::is_same<T, String>::value;
     address = StringConvertibleVariable::persistentVariablesSize;
     StringConvertibleVariable::persistentVariablesSize += isString? STR_SIZE : sizeof(*variable);
 
-    // read variable
-    Serial.println(String("Reading variable ") + name + " isString=" + (isString? "YES":"NO"));
-    EEPROM.begin(512);//(isString? STR_SIZE : sizeof(T));
-    if (isString){
-      char str[STR_SIZE];
-      EEPROM.get<char[STR_SIZE]>(address,str);
-      *variable = String(str);
-    }else{
-      EEPROM.get<T>(address,*Variable<T>::variable);
-    }
-    EEPROM.end();
+    read();
 
     if (StringConvertibleVariable::persistentVariablesSize > 512){
       Serial.println("WARNING! persistent vars exceed EEPROM size");
     }
   }
+
+  virtual void read(){
+    // read variable
+    EEPROM.begin(512);//(isString? STR_SIZE : sizeof(T));
+    delay(20);
+    if (isString){
+      char str[STR_SIZE];
+      EEPROM.get<char[STR_SIZE]>(address,str);
+      *((String*)Variable<T>::variable) = String(str);
+    }else{
+      EEPROM.get<T>(address,*Variable<T>::variable);
+    }
+    EEPROM.end();
+  }
+  
   virtual void persist(){
     EEPROM.begin(512);//(isString? STR_SIZE : sizeof(T));
-    Serial.println("Persisting variable = " + String(StringConvertibleVariable::name));
+    delay(20);
     if (!isString){
       EEPROM.put<T>(address,*Variable<T>::variable);
     }else{
@@ -102,69 +174,20 @@ public:
           str[i] = '\0'; 
         }
       }
-      Serial.println(String("Persisting ") + str);
       EEPROM.put<char[STR_SIZE]>(address,str);
     }
     EEPROM.commit();
     EEPROM.end();
   }
 
-  virtual Types type(){
-    Serial.println("call al typ persistent");
-    return Types::PERSISTENT_VAR;
+  virtual Type::Types type(){
+    return Type::Types::PERSISTENT_VAR;
   }
   
   int address;
 };
 
-class Config{
-public:
-  void setValue(const String& tag, const String& value){
-    setterPtr f = getSetterFunction(tag);
-    if (f){
-      f(this,value);
-    }
-  };
-    
-  setterPtr getSetterFunction(const String& tag){
-    int size = getMapperLength();
-    StringConvertibleVariable** array = getMapper();
-    for (int i = 0; i < size; i++){
-      if (tag == getTag(array[i]->name)){
-        return array[i]->setter;
-      }
-    }
-    return NULL; 
-  }
 
-  String getTag(const String& varName){
-    return getPrefix() + "." + varName;
-  }
-
-  Dictionary toDictionary(){
-    Dictionary result;
-    int size = getMapperLength();
-    StringConvertibleVariable** array = getMapper();
-    for (int i = 0; i < size; i++){
-      result[getTag(array[i]->name)] = array[i]->getter(this);
-    }
-    return result;
-  }
-  
-  String toString(){
-    String result = getPrefix() + ":\n";
-    int size = getMapperLength();
-    StringConvertibleVariable** array = getMapper();
-    for (int i = 0; i < size; i++){
-      result += "\t" + array[i]->name + ": " + array[i]->getter(this) + "\n";
-    }
-    return result;
-  }
-  
-  virtual String getPrefix() = 0;
-  virtual StringConvertibleVariable** getMapper() = 0;
-  virtual int getMapperLength() = 0;
-};
 
 //-------------------------
 #define VA_NUM_ARGS(...) VA_NUM_ARGS_IMPL(__VA_ARGS__, 10,9,8,7,6,5,4,3,2,1)
@@ -182,7 +205,15 @@ private:\
   typedef type name ## __TYPE;\
   typedef PersistentVariable<type> name ## __META_TYPE;\
 public:\
-type name; setterHeader(name,setBody); getterHeader(name,getBody);
+type name; setterHeader(name,setBody); getterHeader(name,getBody);\
+void persist_ ## name(){\
+  IStringConvertibleVariable* var = map(#name);\
+  ((name ## __META_TYPE*) var)->persist();\
+};\
+void read_ ## name(){\
+  IStringConvertibleVariable* var = map(#name);\
+  ((name ## __META_TYPE*) var)->read();\
+};
 
 #define readOnly(type,name,getBody)\
 private:\
@@ -213,9 +244,9 @@ type name; setterHeader(name,{}); getterHeader(name,getBody);
 
 
 #define expose(...)\
-StringConvertibleVariable* array[VA_NUM_ARGS(__VA_ARGS__)] = {FOR_EACH(bind,__VA_ARGS__)};\
+IStringConvertibleVariable* array[VA_NUM_ARGS(__VA_ARGS__)] = {FOR_EACH(bind,__VA_ARGS__)};\
 \
-StringConvertibleVariable** getMapper(){\
+IStringConvertibleVariable** getMapper(){\
   return array;\
 }\
 \
@@ -227,7 +258,7 @@ int getMapperLength(){\
 
 
 #define bind(var)\
-new var ## __META_TYPE(&var,#var,&setterFuncName(var),&getterFuncName(var)),
+new var ## __META_TYPE(&var,#var,&setterFuncName(var),&getterFuncName(var),this),
 
 
 #define setterFuncName(name) set_ ## name
@@ -238,10 +269,9 @@ static void setterFuncName(name)(void* instance, const String& value){\
   ThisClass& configs = *cast(instance);\
   name ## __TYPE& config = configs.name;\
   body\
-  StringConvertibleVariable* var = configs.map(#name);\
-  if (IPersistentVariable* pv = var->asPersistentVariable()){\
-    Serial.println("es persistent!!");\
-    pv->persist();\
+  IStringConvertibleVariable* var = configs.map(#name);\
+  if (var->isPersistentVariable()){\
+    ((PersistentVariable<name ## __TYPE>*) var)->persist();\
   }\
 }\
 
@@ -261,11 +291,11 @@ static String getterFuncName(name)(void* instance){\
 // class macro
 #define DefineConfig(Name,...)\
 class _ ## Name : public Config{\
-private:\
+public:\
   typedef _ ## Name ThisClass;\
-  StringConvertibleVariable* map(String key){\
+  IStringConvertibleVariable* map(String key){\
     for(int i = 0; i < getMapperLength(); i++){\
-      if (array[i]->name == key){\
+      if (array[i]->getName() == key){\
         return array[i];\
       }\
     }\

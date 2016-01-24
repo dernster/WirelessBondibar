@@ -31,6 +31,9 @@ void WifiManager::connect(){
     Serial.println("Connected to wifi");
     configuration->Wifi->ip = ipToString(WiFi.localIP());
     printWifiStatus();
+
+    ssid = configuration->Wifi->ssid;
+    password = configuration->Wifi->password;
   }
 }
 
@@ -40,9 +43,8 @@ void WifiManager::disconnect(){
 }
   
 void WifiManager::configurationChanged(){
-  String lastSSID;
-  String lastPassword;
-  singleton(Storage)->readSSIDAndPassword(lastSSID,lastPassword);
+  String lastSSID = ssid;
+  String lastPassword = password;
   if ((configuration->Wifi->ssid != lastSSID) || (configuration->Wifi->password != lastPassword)){
     singleton(Storage)->setSSIDAndPassword(configuration->Wifi->ssid,configuration->Wifi->password);
     Serial.println("WifiManager::configurationChanged()");
