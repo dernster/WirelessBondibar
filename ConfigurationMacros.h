@@ -86,11 +86,11 @@ public:
   }
   
   String toString(){
-    String result = getPrefix() + ":\n";
+    String result = "";
     int size = getMapperLength();
     StringConvertibleVariable* array = getMapper();
     for (int i = 0; i < size; i++){
-      result += "\t" + array[i].name + ": " + array[i].getter(this) + "\n";
+      result += getPrefix() + "." + array[i].name + ":" + array[i].getter(this) +  (i == size-1) ? " " : "";
     }
     return result;
   }

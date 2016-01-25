@@ -42,6 +42,10 @@ struct Modules{
     bondibar = singleton(Bondibar); 
     clock = singleton(TimeClock);
   }
+
+  void reset(){
+    configuration->notifyObservers();
+  }
   
   Configuration* configuration;
   APServer* ap;
@@ -93,8 +97,6 @@ void setup() {
   Serial.setDebugOutput(true);
   modules = new Modules();
 
-
-  udpRecv.begin(8888);
 }
 //-------------------------------------------------
 
@@ -119,7 +121,13 @@ void loop() {
   }else if (!modules->streaming->active){
 
     modules->ap->handleClient();
-  } 
+    
+    if (!modules->controlServer->serverIsAlive){
+      /* server is dead */
+      Serial.println("SERVER IS DEAD! Reseting modules!");
+      modules->reset();
+    }
+  }
 }
 
 

@@ -7,45 +7,50 @@ using namespace std;
 SINGLETON_CPP(ControlServer)
 
 ControlServer::ControlServer(){
-  Serial.println("1");
   configuration = singleton(Configuration);
-  Serial.println("2");
   configuration->addObserver(this);
-  Serial.println("3");
   buffer = NULL;
   server = NULL;
   setup();
 }
 
 void ControlServer::setup(){
-  Serial.println("4");
   serverDiscovered = false;
+  serverIsAlive = true;
   if (buffer)
     delete [] buffer;
-  Serial.println("5");
   if (server)
     delete server;
-  Serial.println("6");
   server = new WiFiServer(configuration->ControlServer->port);
-  Serial.println("7");
   server->begin();
-  Serial.println("8");
   buffer = new char[configuration->ControlServer->packetLength];
-  Serial.println("9");
   obtainServerEndpoint();
-  Serial.println("10");
 }
 
 bool ControlServer::incomingCommand(){
+  bool packetReceived = false;
+  unsigned long lastPacketTime = 0;
+  
   if (client.connected()){
-    return client.available();
+    packetReceived =  client.available();
   }else{
     client = server->available();
-    return client.connected() && client.available();
+    packetReceived = client.connected() && client.available();
   }
+
+  unsigned long actualTime = millis();
+  if (packetReceived){
+    lastPacketTime = actualTime;
+    serverIsAlive = true;
+  }else if (actualTime - lastPacketTime >= 20*1000){
+    serverIsAlive = false;
+  }
+
+  return packetReceived;
 }
 
-SenderoControlHeader::Command ControlServer::processCommand(){
+SenderoControlHeader ControlServer::processCommand(){
+  
   if (!client.connected()){
     Serial.println("NO CONNECTION!!!");
   }
@@ -60,11 +65,10 @@ SenderoControlHeader::Command ControlServer::processCommand(){
 
   TimeClock* clock = singleton(TimeClock);
 
-  // parse command
+  Serial.println(header.toString());
 
-  switch (command) {
   
-  case SenderoControlHeader::Command::REQUEST_CLOCK:{
+  if (header.requestClockFlag){
 
     time_r currentTime = clock->time();
 
@@ -73,19 +77,27 @@ SenderoControlHeader::Command ControlServer::processCommand(){
 
     client.write((uint8_t*)&header,header.size());
     client.write((uint8_t*)&time,sizeof(time)); 
-    
-    break;
   }
-  case SenderoControlHeader::Command::CLOCK_CORRECTION:{
 
+  if (header.requestStatsFlag){
+
+    String stats = configuration->Stats->toString();
+    client.write((uint8_t*)stats.c_str(),stats.length());
+    client.write((uint8_t*)'\0',1); 
+  }
+
+  
+  if (header.clockCorrectionOffsetFlag){
     byte offsetBytes[4];
     client.readBytes((byte*)offsetBytes,4);
     long offset = readBuffer<long>(offsetBytes);
     clock->addCorrection(offset);
-    break;
   }
-  case SenderoControlHeader::Command::CONFIGURATION:{
 
+  
+
+  
+  if (header.configurationFlag){
     int i = 0;
     while(true){
       byte b = client.read();
@@ -100,13 +112,13 @@ SenderoControlHeader::Command ControlServer::processCommand(){
       i++;
     }
 
+    Serial.println(buffer);
+
     String configs = String(buffer);
     Dictionary dict = parseParameters(configs);
     configuration->setValues(dict,false);
 
     Serial.println(String("Configs setted! ") + configs);
-    break;
-  }
   }
 
   if (header.closeConnectionFlag){
@@ -114,7 +126,7 @@ SenderoControlHeader::Command ControlServer::processCommand(){
     Serial.println("Connection closed!");
   }
 
-  return header.type();
+  return header;
 }
 
 void ControlServer::obtainServerEndpoint(){
@@ -153,12 +165,11 @@ void ControlServer::obtainServerEndpoint(){
         bool clockSync = false;
         while (!configurationReceived || !clockSync){
           if (incomingCommand()){
-            SenderoControlHeader::Command type = processCommand();
-            configurationReceived = type == SenderoControlHeader::Command::CONFIGURATION;
-            clockSync = type == SenderoControlHeader::Command::CLOCK_CORRECTION;
+            SenderoControlHeader h = processCommand();
+            configurationReceived = configurationReceived || h.configurationFlag;
+            clockSync = clockSync || h.clockCorrectionOffsetFlag;
           }
         }
-
         Serial.println("Going for streaming!");
         return;
       }

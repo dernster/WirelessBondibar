@@ -66,7 +66,10 @@ void Streaming::configurationChanged(){
 
 void Streaming::bufferFrame(){
 
+  static bool firstFrame = true;
   static short unsigned int expectedSeq = 0;
+  static unsigned long totalPackets = 0;
+  static unsigned long lostPackets = 0;
 
   int size = udp.read(dataBuffer, packetSize);
   bytesReceived += size + 8 + 20;
@@ -81,8 +84,11 @@ void Streaming::bufferFrame(){
   int offset = 6 + configuration->Device->firstPixel;
   frame->data = copyBuffer(dataBuffer + offset, frame->len);
 
-  if (frame->seq != expectedSeq){
+  totalPackets++;
+  if (!firstFrame && (frame->seq != expectedSeq)){
     Serial.println("Wrong seq number! expected=" + String(expectedSeq) + " got=" + String(frame->seq));
+    lostPackets++;
+    configuration->Stats->packetLossRate = (float)lostPackets/((float)totalPackets);
   }
 
   expectedSeq = frame->seq + 1;
@@ -92,9 +98,7 @@ void Streaming::bufferFrame(){
     return;
   }
 
-//  Serial.println("Current time: " + String(clock->time()));
-//  Serial.println("Playback time: " + String(playbackTime));
-  
+  firstFrame = false;
   buffer.push_back(frame);
   updateBufferStat();
 }
@@ -112,12 +116,6 @@ Frame* Streaming::frameToPlay(){
   Frame* frame = buffer[0];
   time_r packetTime = frame->pt;
 
-//  if ((currentTime >= 500) && (currentTime < 501)){
-//    times++;
-//  }else if (currentTime >= 501){
-//    Serial.println("TImes = " + String(times));
-//  }
-
   if (abs(currentTime - packetTime) <= 1){
     buffer.erase(buffer.begin());
     updateBufferStat();
@@ -125,7 +123,6 @@ Frame* Streaming::frameToPlay(){
   }else if(currentTime >= packetTime + 1){
     buffer.erase(buffer.begin());
     updateBufferStat();
-    // Serial.println("Packet skipped! currentTime is ahead by: " + String(currentTime) + " - " + String(packetTime));
     meanCount++;
     meanSum += (currentTime - packetTime);
     configuration->Stats->playbackMeanDelay = meanSum / meanCount;

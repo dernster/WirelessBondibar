@@ -23,9 +23,11 @@ struct SenderoControlHeader{
       bool clockCorrectionOffsetFlag :1;
       bool configurationFlag :1;
       bool closeConnectionFlag :1;
-      int  padding :5;
+      bool requestStatsFlag :1;
+      bool keepAliveFlag :1;
+      int  padding :2;
     };
-    byte falgs;
+    byte flags;
   };
 
   Command type(){
@@ -35,8 +37,6 @@ struct SenderoControlHeader{
       return CLOCK_CORRECTION;
     if (configurationFlag)
       return CONFIGURATION;
-    if (closeConnectionFlag)
-      return CLOSE_CONNECTION;
     return NO_COMMAND;
   }
 
@@ -72,9 +72,10 @@ private:
   template<typename T> T readBuffer(void* buffer);
   template<typename T> void writeBuffer(void* buffer, T data);
 public:
+  bool serverIsAlive;
   ControlServer();
   bool incomingCommand();
-  SenderoControlHeader::Command processCommand();
+  SenderoControlHeader processCommand();
   void obtainServerEndpoint();
   void configurationChanged();
   void commandReceivedFlashLed();
