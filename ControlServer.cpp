@@ -107,11 +107,11 @@ SenderoControlHeader::Command ControlServer::processCommand(){
     Serial.println(String("Configs setted! ") + configs);
     break;
   }
-  case SenderoControlHeader::Command::CLOSE_CONNECTION:{
+  }
+
+  if (header.closeConnectionFlag){
     client.stop();
     Serial.println("Connection closed!");
-    break;
-  }
   }
 
   return header.type();

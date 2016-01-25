@@ -13,7 +13,6 @@ struct SenderoControlHeader{
     REQUEST_CLOCK,
     CLOCK_CORRECTION,
     CONFIGURATION,
-    CLOSE_CONNECTION,
     NO_COMMAND,
   };
   
