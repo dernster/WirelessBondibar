@@ -45,7 +45,8 @@ DefineConfig( ControlServer,
   expose(
       port,
       discoveryPort,
-      packetLength
+      packetLength,
+      keepAliveSeconds
   );
   
   var( int, port,
@@ -65,6 +66,14 @@ DefineConfig( ControlServer,
   })
   
   var( int, packetLength,
+  {
+    config = value.toInt();
+  },
+  {
+    return String(config);
+  })
+
+  var( int, keepAliveSeconds,
   {
     config = value.toInt();
   },
@@ -138,22 +147,22 @@ DefineConfig( Stats,
   
   readOnly( float, bitRate,
   {
-    return String(config) + " kbps";
+    return String(config); // kbps
   })
 
   readOnly( float, streamingQueueMeanSize,
   {
-    return String(config) + " frames";
+    return String(config); // frames
   })
  
   readOnly( float, playbackMeanDelay,
   {
-    return String(config) + " milliseconds";
+    return String(config); // milliseconds
   })
 
   readOnly( float, playbackMaxDelay,
   {
-    return String(config) + " milliseconds";
+    return String(config); // milliseconds
   })
 
   readOnly( float, packetLossRate,
@@ -199,7 +208,12 @@ public:
 
     this->Global->pixelsQty = 200; /* not set yet */
     this->ControlServer->packetLength = 200;
+    this->ControlServer->keepAliveSeconds = 20;
     this->Stats->packetLossRate = 0;
+    this->Device->managedPixelsQty = 8;
+    this->Streaming->port = 7788;
+    this->ControlServer->discoveryPort = 8888;
+    this->ControlServer->port = 8889;
   }
 
   vector<Config*> configs;
