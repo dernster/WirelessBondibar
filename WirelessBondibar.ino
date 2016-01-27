@@ -24,12 +24,7 @@ struct Modules{
   Modules(){
 
     configuration = singleton(Configuration);
-    configuration->Device->managedPixelsQty = 8;
-    configuration->Device->firstPixel = configuration->Device->number*configuration->Device->managedPixelsQty;
-    configuration->Streaming->port = 7788;
-    configuration->ControlServer->discoveryPort = 8888;
-    configuration->ControlServer->port = 8889;
-
+    
     /* read configs from EEPROM */
     singleton(Storage)->readSSIDAndPassword(configuration->Wifi->ssid,configuration->Wifi->password);
     configuration->Device->number = singleton(Storage)->readDeviceID();
@@ -44,6 +39,7 @@ struct Modules{
   }
 
   void reset(){
+    streaming->udp.stop();
     configuration->notifyObservers();
   }
   
@@ -96,7 +92,6 @@ void setup() {
     
   Serial.setDebugOutput(true);
   modules = new Modules();
-
 }
 //-------------------------------------------------
 

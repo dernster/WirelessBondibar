@@ -20,7 +20,6 @@ public:
 class Streaming : ConfigurationObserver{
 SINGLETON_H(Streaming)
 private:
-  WiFiUDP udp;
   unsigned long start;
   unsigned long stop;
   unsigned long bytesReceived;
@@ -29,6 +28,7 @@ private:
   void setup();
   vector<Frame*> buffer;
 public:
+  WiFiUDP udp;
   Streaming();
   void configure();
   bool frame();

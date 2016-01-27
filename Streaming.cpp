@@ -1,4 +1,5 @@
 #include "Streaming.h"
+#include "ControlServer.h"
 
 SINGLETON_CPP(Streaming)
 
@@ -30,6 +31,7 @@ bool Streaming::frame(){
   /* active-inactive update */
   static unsigned long lastPacketTime = 0;
   if (packetIsThere){
+    singleton(ControlServer)->externalCommandReceived();
     lastPacketTime = millis();
     active = true;
   }else{

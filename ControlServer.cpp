@@ -15,12 +15,14 @@ ControlServer::ControlServer(){
 }
 
 void ControlServer::setup(){
+  lastPacketTime = millis();
   serverDiscovered = false;
   serverIsAlive = true;
   if (buffer)
     delete [] buffer;
-  if (server)
+  if (server) {
     delete server;
+  }
   server = new WiFiServer(configuration->ControlServer->port);
   server->begin();
   buffer = new char[configuration->ControlServer->packetLength];
@@ -29,7 +31,6 @@ void ControlServer::setup(){
 
 bool ControlServer::incomingCommand(){
   bool packetReceived = false;
-  unsigned long lastPacketTime = 0;
   
   if (client.connected()){
     packetReceived =  client.available();
@@ -42,11 +43,15 @@ bool ControlServer::incomingCommand(){
   if (packetReceived){
     lastPacketTime = actualTime;
     serverIsAlive = true;
-  }else if (actualTime - lastPacketTime >= 20*1000){
+  }else if (actualTime - lastPacketTime >= configuration->ControlServer->keepAliveSeconds*1000){
     serverIsAlive = false;
   }
 
   return packetReceived;
+}
+
+void ControlServer::externalCommandReceived(){
+  lastPacketTime = millis();
 }
 
 SenderoControlHeader ControlServer::processCommand(){
@@ -82,8 +87,10 @@ SenderoControlHeader ControlServer::processCommand(){
   if (header.requestStatsFlag){
 
     String stats = configuration->Stats->toString();
-    client.write((uint8_t*)stats.c_str(),stats.length());
-    client.write((uint8_t*)'\0',1); 
+    Serial.println("requestStatsFlag");
+    Serial.println(stats);
+    client.write((uint8_t*)&header,header.size());
+    client.write((uint8_t*)stats.c_str(),stats.length() + 1);
   }
 
   

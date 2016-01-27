@@ -90,7 +90,8 @@ public:
     int size = getMapperLength();
     StringConvertibleVariable* array = getMapper();
     for (int i = 0; i < size; i++){
-      result += getPrefix() + "." + array[i].name + ":" + array[i].getter(this) +  (i == size-1) ? " " : "";
+      String local = getPrefix() + "." + array[i].name + ":" + array[i].getter(this) +  ((i == size-1) ? "" : " ");
+      result = result + local;
     }
     return result;
   }

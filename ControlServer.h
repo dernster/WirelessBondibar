@@ -52,7 +52,9 @@ struct SenderoControlHeader{
     String v1 = String("isRequestClock = ") + (requestClockFlag ? "Yes" : "No") + "\n"; 
     String v2 = String("clockCorrectionOffsetFlag = ") + (clockCorrectionOffsetFlag ? "Yes" : "No") + "\n"; 
     String v3 = String("configurationFlag = ") + (configurationFlag ? "Yes" : "No") + "\n"; 
-    return headerName + v1 + v2 + v3;
+    String v4 = String("closeConnectionFlag = ") + (closeConnectionFlag ? "Yes" : "No") + "\n";
+    String v5 = String("requestStatsFlag = ") + (requestStatsFlag ? "Yes" : "No") + "\n";
+    return headerName + v1 + v2 + v3 + v4 + v5;
   }
 };
 #pragma pack(pop)
@@ -68,11 +70,13 @@ private:
   void registerInServer();
   void setup();
   bool serverDiscovered;
+  unsigned long lastPacketTime;
 
   template<typename T> T readBuffer(void* buffer);
   template<typename T> void writeBuffer(void* buffer, T data);
 public:
   bool serverIsAlive;
+  void externalCommandReceived();
   ControlServer();
   bool incomingCommand();
   SenderoControlHeader processCommand();
