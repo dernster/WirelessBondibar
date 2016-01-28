@@ -9,13 +9,7 @@
 
 DefineConfig( Wifi,
 
-  expose(
-      ssid,
-      password,
-      ip
-  );
-
-  var( String, ssid,
+  persistentVar( String, ssid,
   {
     config = value;
   },
@@ -23,7 +17,7 @@ DefineConfig( Wifi,
     return config;
   })
 
-  var( String, password,
+  persistentVar( String, password,
   {
     config = value;
   },
@@ -35,19 +29,17 @@ DefineConfig( Wifi,
   {
     return config;
   })
+
+  expose(
+      ssid,
+      password,
+      ip
+  );
 )
 
 //-------------ConfigurationServer---------------
 
 DefineConfig( ControlServer,
-
-  
-  expose(
-      port,
-      discoveryPort,
-      packetLength,
-      keepAliveSeconds
-  );
   
   var( int, port,
   {
@@ -80,19 +72,23 @@ DefineConfig( ControlServer,
   {
     return String(config);
   })
+
+  expose(
+      port,
+      discoveryPort,
+      packetLength,
+      keepAliveSeconds
+  );
 );
 
 //-------------Device---------------
 
 DefineConfig( Device,
-
-  expose(
-      number,
-      managedPixelsQty,
-      firstPixel
-  );
   
-  readOnly( int, number,
+  persistentVar( int, number,
+  {
+    config = value.toInt();
+  },
   {
     return String(config);
   })
@@ -112,17 +108,18 @@ DefineConfig( Device,
   {
     return String(config);
   })
+
+  expose(
+      number,
+      managedPixelsQty,
+      firstPixel
+  );
 );
 
 
 //-------------Streaming---------------
 
 DefineConfig( Streaming,
-
-  expose(
-      port
-  );
-  
   var( int, port,
   {
     config = value.toInt();
@@ -130,6 +127,10 @@ DefineConfig( Streaming,
   {
     return String(config);
   })
+
+  expose(
+      port
+  );
 );
 
 
@@ -137,14 +138,6 @@ DefineConfig( Streaming,
 
 DefineConfig( Stats,
 
-  expose(
-      bitRate,
-      streamingQueueMeanSize,
-      playbackMeanDelay,
-      playbackMaxDelay,
-      packetLossRate
-  );
-  
   readOnly( float, bitRate,
   {
     return String(config); // kbps
@@ -169,6 +162,14 @@ DefineConfig( Stats,
   {
     return String(config);
   })
+
+  expose(
+      bitRate,
+      streamingQueueMeanSize,
+      playbackMeanDelay,
+      playbackMaxDelay,
+      packetLossRate
+  );
 );
 
 //-------------Global---------------
@@ -265,6 +266,15 @@ public:
     return res;
   }
 
+  vector<IStringConvertibleVariable*> toVars(){
+    vector<IStringConvertibleVariable*> result;
+    for(int i = 0; i < configs.size(); i++){
+      vector<IStringConvertibleVariable*> vars = configs[i]->toVars();
+      result.insert(result.end(),vars.begin(),vars.end());
+    }
+    return result;
+  }
+
   void setValue(const String& tag, const String& value){
     for(int i = 0; i < configs.size(); i++){
       // tags are unique, so this will set de value only in one config
@@ -275,6 +285,7 @@ public:
   void setValues(Dictionary& dict, bool notify = true){
     for(int i = 0; i < dict.size(); i++){
       StringPair& pair = dict.pairAt(i);
+      Serial.println(String("setting ") + pair.first + "=" + pair.second);
       setValue(pair.first,pair.second);
     }
     if (notify)

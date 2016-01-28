@@ -17,19 +17,14 @@ extern "C" {
 #include "user_interface.h"
 }
 
-#define DEBUG
+//#define DEBUG
 
 struct Modules{
 
   Modules(){
 
-    configuration = singleton(Configuration);
-    
-    /* read configs from EEPROM */
-    singleton(Storage)->readSSIDAndPassword(configuration->Wifi->ssid,configuration->Wifi->password);
-    configuration->Device->number = singleton(Storage)->readDeviceID();
-
     /* create modules */
+    configuration = singleton(Configuration);
     ap = singleton(APServer);
     wifiManager = singleton(WifiManager);
     controlServer = singleton(ControlServer);
@@ -76,7 +71,7 @@ void setup() {
   flashLed(300,250,3);
 
   /* set hostname, this works only from setup function */
-  String str = "WBB-" + String(singleton(Storage)->readDeviceID());
+  String str = "WBB-" + String(singleton(Configuration)->Device->number);
   char * hostName = new char[str.length() + 1];
   strcpy(hostName, str.c_str());
   hostName[str.length()] = '\0';
