@@ -212,6 +212,7 @@ public:
     this->ControlServer->keepAliveSeconds = 20;
     this->Stats->packetLossRate = 0;
     this->Device->managedPixelsQty = 8;
+
     this->Device->firstPixel = this->Device->number*this->Device->managedPixelsQty;
     this->Streaming->port = 7788;
     this->ControlServer->discoveryPort = 8888;
