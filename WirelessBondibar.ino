@@ -48,23 +48,13 @@ struct Modules{
 };
 
 Modules* modules;
-
 Frame* playFrame;
 
-WiFiUDP udpRecv;
-WiFiUDP udpSend;
-char buffer[200];
-byte white[24] = {0};
-byte black[24] = {0};
-
-
-
 void setup() {
-
-  for(int i = 0; i < 24; i++){
-    white[i] = 255;
-    black[i] = 0;
-  }
+  
+  Serial.begin(9600);
+  while (!Serial) {}
+  
   // configure LED
   pinMode(LED,OUTPUT);
   digitalWrite(LED,HIGH);
@@ -77,9 +67,6 @@ void setup() {
   hostName[str.length()] = '\0';
   wifi_station_set_hostname(hostName);
   delete[] hostName;
-  
-  Serial.begin(9600);
-  while (!Serial) {}
   
   WiFi.disconnect();
   WiFi.mode(WIFI_OFF);  
@@ -114,7 +101,6 @@ void loop() {
     
     if (!modules->controlServer->serverIsAlive){
       /* server is dead */
-      Serial.println("SERVER IS DEAD! Reseting modules!");
       modules->reset();
     }
   }

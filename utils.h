@@ -30,9 +30,6 @@ ClassName* ClassName::getInstance(){\
 
 #define singleton(ClassName) ClassName::getInstance()
 
-//
-//#define iterateMap(i,mapVar)\
-//for(std::map<String,String>::iterator i=mapVar.begin(); i!=mapVar.end(); ++i)
     
 void flashLed(int onMs, int offMs, int times);
 void printWifiStatus();

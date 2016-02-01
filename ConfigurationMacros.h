@@ -113,6 +113,7 @@ public:
   setterPtr setter;
   getterPtr getter;  
   static int persistentVariablesSize;
+  static bool eepromWasInitialized;
   Config* config;
 };
 
@@ -135,10 +136,16 @@ class PersistentVariable : public Variable<T>{
 public:
   bool isString;
   PersistentVariable(T* variable, String name, setterPtr setter, getterPtr getter, Config* config): Variable<T>(variable,name,setter,getter,config){
+
+    if (!StringConvertibleVariable::eepromWasInitialized){
+      initEEPROM();
+      StringConvertibleVariable::eepromWasInitialized = true;
+    }
+    
     isString = std::is_same<T, String>::value;
     address = StringConvertibleVariable::persistentVariablesSize;
     StringConvertibleVariable::persistentVariablesSize += isString? STR_SIZE : sizeof(*variable);
-
+    Serial.println(String("Creating persistent variable ") + Variable<T>::name);
     read();
 
     if (StringConvertibleVariable::persistentVariablesSize > 512){
@@ -146,18 +153,41 @@ public:
     }
   }
 
+  void initEEPROM(){
+    EEPROM.begin(512);
+    byte v;
+    EEPROM.get(0,v);
+    if (v != 0xAA){
+      Serial.println("Initializing EEPROM...");
+      EEPROM.write(0,0xAA);
+      for(int i = 1; i < 512; i++)
+        EEPROM.write(i,0);
+      Serial.println("Initializing EEPROM...Done!");
+    }
+    EEPROM.commit();
+    EEPROM.end();
+  }
+
   virtual void read(){
     // read variable
-    EEPROM.begin(512);//(isString? STR_SIZE : sizeof(T));
+    EEPROM.begin(512);
     delay(20);
     if (isString){
-      char str[STR_SIZE];
-      EEPROM.get<char[STR_SIZE]>(address,str);
-      *((String*)Variable<T>::variable) = String(str);
+      String res = "";
+      for(int addr = address, i = 0; i < STR_SIZE-1; i++, addr++){
+        char r;
+        EEPROM.get(addr,r);
+        if (r == '\0')
+          break;
+        res += String(r);
+      }
+      *((String*)Variable<T>::variable) = res;
     }else{
       EEPROM.get<T>(address,*Variable<T>::variable);
     }
     EEPROM.end();
+
+    Serial.println(String("Variable ") + Variable<T>::name + " read. -> " + String(*Variable<T>::variable));
   }
   
   virtual void persist(){
@@ -166,19 +196,17 @@ public:
     if (!isString){
       EEPROM.put<T>(address,*Variable<T>::variable);
     }else{
-      char str[STR_SIZE];
       String* var = (String*)Variable<T>::variable;
-      for(int i = 0; i < STR_SIZE; i++){
-        if (i < var->length()){
-          str[i] = var->charAt(i);
-        }else{
-          str[i] = '\0'; 
-        }
+      int addr = address;
+      for(int i = 0; i < STR_SIZE-1 && i < var->length(); i++, addr++){
+        EEPROM.write(addr,var->charAt(i));
       }
-      EEPROM.put<char[STR_SIZE]>(address,str);
+      EEPROM.write(addr,'\0');
     }
     EEPROM.commit();
     EEPROM.end();
+
+    Serial.println(String("Variable ") + Variable<T>::name + " write. -> " + String(*Variable<T>::variable));
   }
 
   virtual Type::Types type(){

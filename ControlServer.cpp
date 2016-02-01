@@ -45,7 +45,9 @@ bool ControlServer::incomingCommand(){
     serverIsAlive = true;
   }else if (actualTime - lastPacketTime >= configuration->ControlServer->keepAliveSeconds*1000){
     serverIsAlive = false;
+    Serial.println("SERVER IS DEAD! Reseting modules!");
   }
+
 
   return packetReceived;
 }

@@ -15,18 +15,18 @@ void WifiManager::setup(){
 }
 
 void WifiManager::connect(){
-
-  if (!connected){ /* to not print twice in case of connection from the AP */
-    
-    disconnect();
-    APServer* ap = singleton(APServer);
-    WiFi.begin(configuration->Wifi->ssid.c_str(),configuration->Wifi->password.c_str());
-    Serial.println("Attempting to connect to SSID " + configuration->Wifi->ssid + "... password=" + configuration->Wifi->password + " " + String(configuration->Wifi->password.length()));
-    while ( WiFi.status() != WL_CONNECTED) {
-      LOOP_UNTIL(2000){
-        ap->handleClient(); /* allow connections to AP, in case someone needs to change ssid */
-      }
+  
+  disconnect();
+  APServer* ap = singleton(APServer);
+  WiFi.begin(configuration->Wifi->ssid.c_str(),configuration->Wifi->password.c_str());
+  Serial.println("Attempting to connect to SSID " + configuration->Wifi->ssid + "... password=" + configuration->Wifi->password + " " + String(configuration->Wifi->password.length()));
+  while ( WiFi.status() != WL_CONNECTED) {
+    LOOP_UNTIL(2000){
+      ap->handleClient(); /* allow connections to AP, in case someone needs to change ssid */
     }
+  }
+   
+  if (!connected){ /* to not print twice in case of connection from the AP */
     connected = true;
     Serial.println("Connected to wifi");
     configuration->Wifi->ip = ipToString(WiFi.localIP());

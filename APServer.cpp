@@ -5,9 +5,18 @@ SINGLETON_CPP(APServer)
 
 String APServer::apIP = "";
 
-APServer::APServer() : server(80){
+APServer::APServer(){
   Serial.print("Configuring access point...");
   Configuration* conf = singleton(Configuration);
+  server = NULL;
+  setup();
+}
+
+void APServer::setup(){
+  if (server)
+    delete server;
+  Configuration* conf = singleton(Configuration);  
+  server = new ESP8266WebServer(80);
   String n = String(conf->Device->number);
   apIP = "192.168.4.1";
   WiFi.mode(WIFI_AP_STA);
@@ -16,29 +25,29 @@ APServer::APServer() : server(80){
   IPAddress myIP = WiFi.softAPIP();
   Serial.print("AP IP address: ");
   Serial.println(myIP);
-  server.on("/", handleRoot);
-  server.on("/save", HTTP_POST,handleSave);
-  server.begin();
+  server->on("/", handleRoot);
+  server->on("/save", HTTP_POST,handleSave);
+  server->begin();
   Serial.println("HTTP server started");
 }
 
 void APServer::handleClient(){
-  server.handleClient();
+  server->handleClient();
 }
 
 void APServer::handleRoot(){
   Serial.println("Page requested!");
   APServer* ap = singleton(APServer);
-  ap->server.send(200, "text/html", buildPage());
+  ap->server->send(200, "text/html", buildPage());
 }
 
 void APServer::handleSave(){
   APServer* ap = singleton(APServer);
-  ap->server.send(200, "text/html", "Ok");
+  ap->server->send(200, "text/html", "Ok");
 
   Dictionary params;
-  for(int i = 0; i < ap->server.args(); i++){
-    params[ap->server.argName(i)] = ap->server.arg(i);
+  for(int i = 0; i < ap->server->args(); i++){
+    params[ap->server->argName(i)] = ap->server->arg(i);
   }
 
   if (params.size() > 0){
@@ -136,5 +145,10 @@ String page2 = ""
 ;
 
   return page1 + inputs + page2;
+}
+
+void APServer::configurationChanged(){
+  Serial.println("APServer::configurationChanged");
+  setup();
 }
 
