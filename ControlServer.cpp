@@ -2,6 +2,7 @@
 #include "APServer.h"
 #include <vector>
 #include "TimeClock.h"
+#include "Streaming.h"
 using namespace std;
 
 SINGLETON_CPP(ControlServer)
@@ -87,7 +88,12 @@ SenderoControlHeader ControlServer::processCommand(){
   }
 
   if (header.requestStatsFlag){
+    Serial.println("el ratee");
+    Serial.println(configuration->Stats->bitRate);
 
+    /* stats are dirty if streaming is active */
+    configuration->Stats->dirty = singleton(Streaming)->active;
+    
     String stats = configuration->Stats->toString();
     Serial.println("requestStatsFlag");
     Serial.println(stats);

@@ -110,29 +110,39 @@ Frame* Streaming::frameToPlay(){
   static int times = 0;
   static float meanCount = 0;
   static float meanSum = 0;
+  static int delayedPackets = 0;
   
   if (buffer.size() == 0)
     return NULL;
-    
+   
   time_r currentTime = clock->time();
   Frame* frame = buffer[0];
   time_r packetTime = frame->pt;
 
   if (abs(currentTime - packetTime) <= 1){
+    times++;
     buffer.erase(buffer.begin());
     updateBufferStat();
-    return frame;
   }else if(currentTime >= packetTime + 1){
+    Serial.println("Frame delayed!!!!!");
+    times++;
+    delayedPackets++;
     buffer.erase(buffer.begin());
     updateBufferStat();
     meanCount++;
     meanSum += (currentTime - packetTime);
     configuration->Stats->playbackMeanDelay = meanSum / meanCount;
-    if (configuration->Stats->playbackMaxDelay < currentTime - packetTime)
-      configuration->Stats->playbackMaxDelay = currentTime - packetTime;    
+    if (configuration->Stats->playbackMaxDelay < (currentTime - packetTime))
+      configuration->Stats->playbackMaxDelay = currentTime - packetTime;
+
+    delete frame;
+    frame = NULL;
+  }else {
+    frame = NULL;
   }
 
-  return NULL;
+  configuration->Stats->delayedFramesRate = ((float)delayedPackets)/((float)times);
+  return frame;
 }
 
 void Streaming::updateBufferStat(){
@@ -141,7 +151,11 @@ void Streaming::updateBufferStat(){
 
   qty++;
   sizes += buffer.size();
-  
+
   configuration->Stats->streamingQueueMeanSize = (float)sizes/(float)qty;
+
+  if (buffer.size() > configuration->Stats->streamingQueueMaxSize){
+    configuration->Stats->streamingQueueMaxSize = buffer.size();
+  }
 }
 

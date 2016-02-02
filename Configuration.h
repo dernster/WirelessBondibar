@@ -138,6 +138,17 @@ DefineConfig( Streaming,
 
 DefineConfig( Stats,
 
+  _Stats(){
+    bitRate = 0;
+    streamingQueueMeanSize = 0;
+    streamingQueueMaxSize = 0;
+    playbackMeanDelay = 0;
+    playbackMaxDelay = 0;
+    packetLossRate = 0;
+    delayedFramesRate = 0;
+    dirty = false;
+  }
+
   readOnly( float, bitRate,
   {
     return String(config); // kbps
@@ -147,13 +158,18 @@ DefineConfig( Stats,
   {
     return String(config); // frames
   })
+
+  readOnly( int, streamingQueueMaxSize,
+  {
+    return String(config);
+  })
  
   readOnly( float, playbackMeanDelay,
   {
     return String(config); // milliseconds
   })
 
-  readOnly( float, playbackMaxDelay,
+  readOnly( unsigned long, playbackMaxDelay,
   {
     return String(config); // milliseconds
   })
@@ -163,12 +179,25 @@ DefineConfig( Stats,
     return String(config);
   })
 
+  readOnly( float, delayedFramesRate,
+  {
+    return String(config);
+  })
+
+  readOnly( bool, dirty,
+  {
+    return config ? "True" : "False";
+  })
+
   expose(
       bitRate,
       streamingQueueMeanSize,
+      streamingQueueMaxSize,
       playbackMeanDelay,
       playbackMaxDelay,
-      packetLossRate
+      packetLossRate,
+      delayedFramesRate,
+      dirty
   );
 );
 

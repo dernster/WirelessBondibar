@@ -19,6 +19,7 @@ void WifiManager::connect(){
   disconnect();
   APServer* ap = singleton(APServer);
   WiFi.begin(configuration->Wifi->ssid.c_str(),configuration->Wifi->password.c_str());
+//  WiFi.begin("LarroBrun","27067243LB");
   Serial.println("Attempting to connect to SSID " + configuration->Wifi->ssid + "... password=" + configuration->Wifi->password + " " + String(configuration->Wifi->password.length()));
   while ( WiFi.status() != WL_CONNECTED) {
     LOOP_UNTIL(2000){

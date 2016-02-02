@@ -17,7 +17,6 @@ extern "C" {
 #include "user_interface.h"
 }
 
-//#define DEBUG
 
 struct Modules{
 
@@ -25,11 +24,11 @@ struct Modules{
 
     /* create modules */
     configuration = singleton(Configuration);
+    bondibar = singleton(Bondibar);
     ap = singleton(APServer);
     wifiManager = singleton(WifiManager);
     controlServer = singleton(ControlServer);
     streaming = singleton(Streaming);
-    bondibar = singleton(Bondibar); 
     clock = singleton(TimeClock);
   }
 
@@ -72,7 +71,7 @@ void setup() {
   WiFi.mode(WIFI_OFF);  
   delay(500);
     
-  Serial.setDebugOutput(true);
+//  Serial.setDebugOutput(true);
   modules = new Modules();
 }
 //-------------------------------------------------

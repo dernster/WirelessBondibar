@@ -165,34 +165,33 @@ public:
       Serial.println("Initializing EEPROM...Done!");
     }
     EEPROM.commit();
-    EEPROM.end();
-  }
+    delay(500);
+  };
 
   virtual void read(){
     // read variable
-    EEPROM.begin(512);
     delay(20);
     if (isString){
       String res = "";
+//      Serial.println(String("starting address = ") + String(address));
       for(int addr = address, i = 0; i < STR_SIZE-1; i++, addr++){
-        char r;
-        EEPROM.get(addr,r);
+        char r = char(EEPROM.read(addr));
+//        Serial.println(String("reading ") + String(i));
+//        Serial.println(r);
         if (r == '\0')
           break;
+        
         res += String(r);
       }
       *((String*)Variable<T>::variable) = res;
     }else{
       EEPROM.get<T>(address,*Variable<T>::variable);
     }
-    EEPROM.end();
-
     Serial.println(String("Variable ") + Variable<T>::name + " read. -> " + String(*Variable<T>::variable));
   }
   
   virtual void persist(){
-    EEPROM.begin(512);//(isString? STR_SIZE : sizeof(T));
-    delay(20);
+//    Serial.println(String("starting address = ") + String(address));
     if (!isString){
       EEPROM.put<T>(address,*Variable<T>::variable);
     }else{
@@ -200,11 +199,12 @@ public:
       int addr = address;
       for(int i = 0; i < STR_SIZE-1 && i < var->length(); i++, addr++){
         EEPROM.write(addr,var->charAt(i));
+//        Serial.println(var->charAt(i));
       }
       EEPROM.write(addr,'\0');
     }
     EEPROM.commit();
-    EEPROM.end();
+    delay(500);
 
     Serial.println(String("Variable ") + Variable<T>::name + " write. -> " + String(*Variable<T>::variable));
   }
