@@ -47,7 +47,6 @@ void WifiManager::configurationChanged(){
   String lastSSID = ssid;
   String lastPassword = password;
   if ((configuration->Wifi->ssid != lastSSID) || (configuration->Wifi->password != lastPassword)){
-    singleton(Storage)->setSSIDAndPassword(configuration->Wifi->ssid,configuration->Wifi->password);
     Serial.println("WifiManager::configurationChanged()");
     setup();
   }
