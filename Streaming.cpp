@@ -14,7 +14,7 @@ Streaming::Streaming(){
 void Streaming::setup(){
   bytesReceived = 0;
   udp.begin(configuration->Streaming->port);
-  packetSize = configuration->Global->pixelsQty*3;
+  packetSize = (configuration->Global->pixelsQty)*3;
   if (dataBuffer){
     delete [] dataBuffer;
   }
@@ -88,7 +88,7 @@ void Streaming::bufferFrame(){
 
   totalPackets++;
   if (!firstFrame && (frame->seq != expectedSeq)){
-    Serial.println("Wrong seq number! expected=" + String(expectedSeq) + " got=" + String(frame->seq));
+//    Serial.println("Wrong seq number! expected=" + String(expectedSeq) + " got=" + String(frame->seq));
     lostPackets++;
     configuration->Stats->packetLossRate = (float)lostPackets/((float)totalPackets);
   }
@@ -119,7 +119,7 @@ Frame* Streaming::frameToPlay(){
   Frame* frame = buffer[0];
   time_r packetTime = frame->pt;
 
-  if (abs(currentTime - packetTime) <= 1){
+  if (abs(currentTime - packetTime) <= 0){
     times++;
     buffer.erase(buffer.begin());
     updateBufferStat();

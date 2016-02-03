@@ -151,12 +151,12 @@ DefineConfig( Stats,
 
   readOnly( float, bitRate,
   {
-    return String(config); // kbps
+    return String(config,4); // kbps
   })
 
   readOnly( float, streamingQueueMeanSize,
   {
-    return String(config); // frames
+    return String(config,4); // frames
   })
 
   readOnly( int, streamingQueueMaxSize,
@@ -166,7 +166,7 @@ DefineConfig( Stats,
  
   readOnly( float, playbackMeanDelay,
   {
-    return String(config); // milliseconds
+    return String(config,4); // milliseconds
   })
 
   readOnly( unsigned long, playbackMaxDelay,
@@ -176,12 +176,12 @@ DefineConfig( Stats,
 
   readOnly( float, packetLossRate,
   {
-    return String(config);
+    return String(config,4);
   })
 
   readOnly( float, delayedFramesRate,
   {
-    return String(config);
+    return String(config,4);
   })
 
   readOnly( bool, dirty,
