@@ -53,6 +53,10 @@ void setup() {
   
   Serial.begin(9600);
   while (!Serial) {}
+
+  // configure NOTIFY_PIN
+  pinMode(NOTIFY_PIN,OUTPUT);
+  digitalWrite(NOTIFY_PIN,LOW);
   
   // configure LED
   pinMode(LED,OUTPUT);
@@ -88,6 +92,10 @@ void loop() {
   }else if((playFrame = modules->streaming->frameToPlay()) != NULL){
 
     modules->bondibar->sendData(playFrame->data,playFrame->len);
+    if ((playFrame->seq % 100) == 0){
+      digitalWrite(NOTIFY_PIN,HIGH);
+      digitalWrite(NOTIFY_PIN,LOW);
+    }
     delete playFrame;
 
   }else if (modules->controlServer->incomingCommand()){

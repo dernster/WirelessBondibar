@@ -1,6 +1,8 @@
 #include <SPI.h>
 #include "Configuration.h"
 
+#define NOTIFY_PIN 5
+
 #define CLK_PIN 14 // D5, GPIO14
 #define DATA_PIN 13 // D7, GPIO13
 

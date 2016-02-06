@@ -14,7 +14,7 @@ Streaming::Streaming(){
 void Streaming::setup(){
   bytesReceived = 0;
   udp.begin(configuration->Streaming->port);
-  packetSize = (configuration->Global->pixelsQty)*3;
+  packetSize = configuration->Global->pixelsQty*3 + 6;
   if (dataBuffer){
     delete [] dataBuffer;
   }
@@ -78,6 +78,19 @@ void Streaming::bufferFrame(){
 
   time_r playbackTime = dataBuffer[0] + (dataBuffer[1]<<8) + (dataBuffer[2]<<16) + (dataBuffer[3]<<24);
   short int seq = dataBuffer[4] + (dataBuffer[5]<<8);
+
+  time_r serverTime = playbackTime - 200;
+
+  if ((seq % 200) == 0){
+    time_r myTime = clock->time();
+    long offset = serverTime - myTime;
+    clock->addCorrection(offset);
+  }
+
+//  time_r currentTime = clock->time();
+//  Serial.println(String("current time = ")  + String(currentTime));
+//  Serial.println(String("packet time = ")  + String(playbackTime - 200));
+//  Serial.println(String("diff abs = ") + Serial.println(abs(playbackTime - 200 - currentTime)));
 
   Frame* frame = new Frame();
   frame->pt = playbackTime;
