@@ -79,3 +79,21 @@ byte* copyBuffer(byte* src,int len){
   return dst;
 }
 
+
+template<typename T> T readBuffer(void* buffer){
+  int size = sizeof(T);
+  T result = 0;
+  for(int i = 0; i < size; i++){
+    byte b = ((byte*)buffer)[i];
+    result |= (b << (i*8));
+  }
+  return result;
+}
+
+template<typename T> void writeBuffer(void* buffer, T data){
+  int size = sizeof(T);
+  for(int i = 0; i < size; i++){
+    ((byte*)buffer)[i] = (byte)((data >> (i*8)) & 0xFF);
+  }
+}
+

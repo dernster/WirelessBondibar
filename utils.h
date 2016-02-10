@@ -39,3 +39,5 @@ void connectToWifi();
 vector<String> splitString(String string, char delimiter);
 Dictionary parseParameters(String params);
 byte* copyBuffer(byte* src,int len);
+template<typename T> T readBuffer(void* buffer);
+template<typename T> void writeBuffer(void* buffer, T data);

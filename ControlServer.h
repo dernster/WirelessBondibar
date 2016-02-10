@@ -71,9 +71,9 @@ private:
   void setup();
   bool serverDiscovered;
   unsigned long lastPacketTime;
-
   template<typename T> T readBuffer(void* buffer);
   template<typename T> void writeBuffer(void* buffer, T data);
+  
 public:
   bool serverIsAlive;
   void externalCommandReceived();

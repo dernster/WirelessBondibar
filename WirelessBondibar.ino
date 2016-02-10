@@ -13,6 +13,8 @@
 #include "APServer.h"
 #include "TimeClock.h"
 
+#define NOTIFY_PIN 5
+
 extern "C" {
 #include "user_interface.h"
 }
@@ -24,11 +26,11 @@ struct Modules{
 
     /* create modules */
     configuration = singleton(Configuration);
-    bondibar = singleton(Bondibar);
+//    bondibar = singleton(Bondibar);
     ap = singleton(APServer);
     wifiManager = singleton(WifiManager);
-    controlServer = singleton(ControlServer);
-    streaming = singleton(Streaming);
+//    controlServer = singleton(ControlServer);
+//    streaming = singleton(Streaming);
     clock = singleton(TimeClock);
   }
 
@@ -53,6 +55,9 @@ void setup() {
   
   Serial.begin(9600);
   while (!Serial) {}
+
+  pinMode(NOTIFY_PIN,OUTPUT);
+  digitalWrite(NOTIFY_PIN,LOW);
   
   // configure LED
   pinMode(LED,OUTPUT);
@@ -77,32 +82,59 @@ void setup() {
 //-------------------------------------------------
 
 
+byte packet[] = {0,0,0,0,0,0,255,255,255}; 
+unsigned short seq = 0;
+WiFiUDP udp;
 
+time_r lastPacketTime = 0;
+bool yaMovi = false;
 
 void loop() {
 
-  if (modules->streaming->frame()){
-
-    modules->streaming->bufferFrame();
-
-  }else if((playFrame = modules->streaming->frameToPlay()) != NULL){
-
-    modules->bondibar->sendData(playFrame->data,playFrame->len);
-    delete playFrame;
-
-  }else if (modules->controlServer->incomingCommand()){
-    
-    modules->controlServer->processCommand();
-    
-  }else if (!modules->streaming->active){
-
-    modules->ap->handleClient();
-    
-    if (!modules->controlServer->serverIsAlive){
-      /* server is dead */
-      modules->reset();
-    }
+  time_r time = modules->clock->time();
+  if (((time % 1000) == 0) && !yaMovi){
+    digitalWrite(NOTIFY_PIN,HIGH);
+    digitalWrite(NOTIFY_PIN,LOW);
+    yaMovi = true; /* to not move pin every time within 1ms */
+    Serial.println("moviendo pata!");
+  } else if ((time % 1000) != 0){
+    yaMovi = false;
   }
+
+  if ((time - lastPacketTime) >= 42){
+    
+    lastPacketTime = time;
+    seq++;
+  
+    if ((seq % 100) == 0) {
+      packet[8] = 255 - packet[8];
+      packet[7] = 255 - packet[7];
+      packet[6] = 255 - packet[6];
+    }
+    time_r pt = time + 200;
+    packet[0] = pt & 0xFF;
+    packet[1] = (pt >> 8 ) & 0xFF;
+    packet[2] = (pt >> 16) & 0xFF;
+    packet[3] = (pt >> 24) & 0xFF;
+    packet[4] = seq & 0xFF;
+    packet[5] = (seq >> 8) & 0xFF;
+
+    if ((seq % 200) == 0){
+      if (random(100) < 20){
+        // simulate packet delay
+        delay(10 + random(100));
+      }
+    }
+  
+      // send broadcast packet asking IP and Port of server
+    IPAddress ip = WiFi.localIP();
+    ip[3] = 255;
+    int res = udp.beginPacket(ip,modules->configuration->Streaming->port);
+    udp.write(packet,9);
+    udp.endPacket();
+
+  }
+ 
 }
 
 
