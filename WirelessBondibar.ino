@@ -13,6 +13,8 @@
 #include "APServer.h"
 #include "TimeClock.h"
 
+#define NOTIFY_PIN 5
+
 extern "C" {
 #include "user_interface.h"
 }
@@ -50,9 +52,14 @@ Modules* modules;
 Frame* playFrame;
 
 void setup() {
-  
+  for(int i = 0; i < NEH; i++)
+    buffer[i] = 34;
+    
   Serial.begin(9600);
   while (!Serial) {}
+
+  pinMode(NOTIFY_PIN,OUTPUT);
+  digitalWrite(NOTIFY_PIN,LOW);
   
   // configure LED
   pinMode(LED,OUTPUT);
@@ -78,8 +85,20 @@ void setup() {
 
 
 
+bool yaMovi = false;
 
 void loop() {
+
+  // move pin in specific times 
+  time_r time = modules->clock->time();
+  if (((time % 1000) == 0) && !yaMovi){
+    digitalWrite(NOTIFY_PIN,HIGH);
+    digitalWrite(NOTIFY_PIN,LOW);
+    yaMovi = true; /* to not move pin every time within 1ms */
+//    Serial.println("moviendo pata!");
+  } else if ((time % 1000) != 0){
+    yaMovi = false;
+  }
 
   if (modules->streaming->frame()){
 

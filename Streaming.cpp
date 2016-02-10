@@ -79,6 +79,14 @@ void Streaming::bufferFrame(){
   time_r playbackTime = dataBuffer[0] + (dataBuffer[1]<<8) + (dataBuffer[2]<<16) + (dataBuffer[3]<<24);
   short int seq = dataBuffer[4] + (dataBuffer[5]<<8);
 
+  time_r serverTime = playbackTime - 200;
+
+  if ((seq % 200) == 0){
+    time_r myTime = clock->time();
+    long offset = serverTime - myTime;
+    clock->addCorrection(offset);
+  }
+
   Frame* frame = new Frame();
   frame->pt = playbackTime;
   frame->seq = seq;
