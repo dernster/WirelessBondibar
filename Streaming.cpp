@@ -14,7 +14,7 @@ Streaming::Streaming(){
 void Streaming::setup(){
   bytesReceived = 0;
   udp.begin(configuration->Streaming->port);
-  packetSize = (configuration->Global->pixelsQty)*3;
+  packetSize = configuration->Global->pixelsQty*3 + 6; /* 6 = timestamp + seqNumber */
   if (dataBuffer){
     delete [] dataBuffer;
   }
