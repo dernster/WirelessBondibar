@@ -66,6 +66,18 @@ void Streaming::configurationChanged(){
   setup();
 }
 
+//=======================================
+
+#define OFFSETS_QTY (24*5)
+long offsets[OFFSETS_QTY] = {0};
+int offIndex = 0;
+double SMA = 0;
+
+double initialCum = 0;
+
+
+//=======================================
+
 void Streaming::bufferFrame(){
 
   static bool firstFrame = true;
@@ -73,28 +85,48 @@ void Streaming::bufferFrame(){
   static unsigned long totalPackets = 0;
   static unsigned long lostPackets = 0;
 
+
   int size = udp.read(dataBuffer, packetSize);
   bytesReceived += size + 8 + 20;
 
   time_r playbackTime = dataBuffer[0] + (dataBuffer[1]<<8) + (dataBuffer[2]<<16) + (dataBuffer[3]<<24);
   short int seq = dataBuffer[4] + (dataBuffer[5]<<8);
 
-  time_r serverTime = playbackTime - 200;
+  time_r serverTime = playbackTime - 240;
 
-  if ((seq % 200) == 0){
-    time_r myTime = clock->time();
-    long offset = serverTime - myTime;
-    clock->addCorrection(offset);
+  time_r myTime = clock->rawTime();
+  long offset = serverTime - myTime;
+
+  long oldOffset = offsets[offIndex];
+  offsets[offIndex] = offset;
+  offIndex = (offIndex + 1) % OFFSETS_QTY;
+    
+  if (totalPackets < OFFSETS_QTY) {
+    clock->setCorrection(offset);
+    initialCum += offset;
+  } else {
+    if (totalPackets == OFFSETS_QTY){
+      SMA = initialCum/(double)OFFSETS_QTY;
+    }
+
+    SMA = SMA + ((double)(offset - oldOffset))/((double)OFFSETS_QTY);
+    long LSMA = round(SMA);
+    clock->setCorrection(LSMA);
+
+//    if ((seq % 24) == 0){
+//      Serial.println(LSMA);
+//    }
   }
-
+  
+  totalPackets++;
   Frame* frame = new Frame();
   frame->pt = playbackTime;
   frame->seq = seq;
   frame->len = configuration->Device->managedPixelsQty;
-  int offset = 6 + configuration->Device->firstPixel;
-  frame->data = copyBuffer(dataBuffer + offset, frame->len);
+  int bufferOffset = 6 + configuration->Device->firstPixel;
+  frame->data = copyBuffer(dataBuffer + bufferOffset, frame->len);
 
-  totalPackets++;
+
   if (!firstFrame && (frame->seq != expectedSeq)){
 //    Serial.println("Wrong seq number! expected=" + String(expectedSeq) + " got=" + String(frame->seq));
     lostPackets++;
@@ -111,6 +143,8 @@ void Streaming::bufferFrame(){
   firstFrame = false;
   buffer.push_back(frame);
   updateBufferStat();
+
+  
 }
 
 Frame* Streaming::frameToPlay(){

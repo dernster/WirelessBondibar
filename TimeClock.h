@@ -6,6 +6,10 @@ SINGLETON_H(TimeClock)
 public:
   long correction;
 
+  void setCorrection(long offset){
+    correction = offset;
+  }
+
   void addCorrection(long offset){
     correction += offset;
     alarmStart += offset;
@@ -17,6 +21,10 @@ public:
 
   time_r time(){
     return ((time_r)millis()) + correction;
+  }
+
+  time_r rawTime(){
+    return millis();
   }
 
   time_r alarmStart;

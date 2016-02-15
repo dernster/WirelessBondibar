@@ -52,8 +52,6 @@ Modules* modules;
 Frame* playFrame;
 
 void setup() {
-  for(int i = 0; i < NEH; i++)
-    buffer[i] = 34;
     
   Serial.begin(9600);
   while (!Serial) {}

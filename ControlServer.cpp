@@ -106,7 +106,7 @@ SenderoControlHeader ControlServer::processCommand(){
     byte offsetBytes[4];
     client.readBytes((byte*)offsetBytes,4);
     long offset = readBuffer<long>(offsetBytes);
-    clock->addCorrection(offset);
+//    clock->addCorrection(offset);
   }
 
   
