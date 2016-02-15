@@ -120,6 +120,15 @@ DefineConfig( Device,
 //-------------Streaming---------------
 
 DefineConfig( Streaming,
+
+  var( String, serverIP,
+  {
+    config = value;
+  },
+  {
+    return config;
+  })
+  
   var( int, port,
   {
     config = value.toInt();
@@ -129,7 +138,8 @@ DefineConfig( Streaming,
   })
 
   expose(
-      port
+      port,
+      serverIP
   );
 );
 

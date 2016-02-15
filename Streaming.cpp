@@ -25,6 +25,9 @@ void Streaming::setup(){
 
 bool Streaming::frame(){
   bool packetIsThere = udp.parsePacket(); 
+  if (udp.remoteIP().toString() != configuration->Streaming->serverIP)
+    return false;
+  
   bool lastActive = active;
   unsigned long actualTime;
   

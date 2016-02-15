@@ -171,6 +171,7 @@ void ControlServer::obtainServerEndpoint(){
       /* allow connections from AP */
       ap->handleClient();
       if (client = server->available()){
+        configuration->Streaming->serverIP = client.remoteIP().toString();
         Serial.println("got client!");
 
         Serial.println("waiting for configurations and clockSync...");
