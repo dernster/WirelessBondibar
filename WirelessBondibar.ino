@@ -26,6 +26,7 @@ struct Modules{
 
     /* create modules */
     configuration = singleton(Configuration);
+    configuration->Wifi->ssid = "G2_6031";
 //    bondibar = singleton(Bondibar);
     ap = singleton(APServer);
     wifiManager = singleton(WifiManager);
@@ -89,9 +90,7 @@ WiFiUDP udp;
 time_r lastPacketTime = 0;
 bool yaMovi = false;
 
-void loop() {
-
-  time_r time = modules->clock->time();
+inline void movePin(time_r time){
   if (((time % 1000) == 0) && !yaMovi){
     digitalWrite(NOTIFY_PIN,HIGH);
     digitalWrite(NOTIFY_PIN,LOW);
@@ -100,6 +99,12 @@ void loop() {
   } else if ((time % 1000) != 0){
     yaMovi = false;
   }
+}
+
+void loop() {
+
+  time_r time = modules->clock->time();
+  movePin(time);
 
   if ((time - lastPacketTime) >= 42){
     
@@ -111,7 +116,7 @@ void loop() {
       packet[7] = 255 - packet[7];
       packet[6] = 255 - packet[6];
     }
-    time_r pt = time + 200;
+    time_r pt = time + 240;
     packet[0] = pt & 0xFF;
     packet[1] = (pt >> 8 ) & 0xFF;
     packet[2] = (pt >> 16) & 0xFF;
@@ -119,12 +124,14 @@ void loop() {
     packet[4] = seq & 0xFF;
     packet[5] = (seq >> 8) & 0xFF;
 
-    if ((seq % 200) == 0){
-      if (random(100) < 20){
-        // simulate packet delay
-        delay(10 + random(100));
+    if (random(100) < 20){
+      // simulate packet delay
+      LOOP_UNTIL(10 + random(100)){
+        time_r time = modules->clock->time();
+        movePin(time);
       }
     }
+    
   
       // send broadcast packet asking IP and Port of server
     IPAddress ip = WiFi.localIP();
