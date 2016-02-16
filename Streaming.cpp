@@ -85,8 +85,8 @@ void Streaming::bufferFrame(){
   Frame* frame = new Frame();
   frame->pt = playbackTime;
   frame->seq = seq;
-  frame->len = configuration->Device->managedPixelsQty;
-  int offset = 6 + configuration->Device->firstPixel;
+  frame->len = configuration->Device->managedPixelsQty*3;
+  int offset = 6 + configuration->Device->firstPixel*3;
   frame->data = copyBuffer(dataBuffer + offset, frame->len);
 
   totalPackets++;
