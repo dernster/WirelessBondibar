@@ -100,6 +100,7 @@ void loop() {
     
     if (!modules->controlServer->serverIsAlive){
       /* server is dead */
+      Serial.println("SERVER IS DEAD! Reseting modules!");
       modules->reset();
     }
   }
