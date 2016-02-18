@@ -24,10 +24,10 @@ void Streaming::setup(){
 }
 
 bool Streaming::frame(){
-  bool packetIsThere = udp.parsePacket(); 
+  bool packetIsThere = udp.parsePacket();
   bool lastActive = active;
   unsigned long actualTime;
-  
+
   /* active-inactive update */
   static unsigned long lastPacketTime = 0;
   if (packetIsThere){
@@ -50,7 +50,7 @@ bool Streaming::frame(){
     bytesReceived = 0;
     Serial.println("Streaming is now ACTIVE!");
   }
-  
+
   return packetIsThere;
 }
 
@@ -68,7 +68,7 @@ void Streaming::configurationChanged(){
 
 //=======================================
 
-#define OFFSETS_QTY (24*5)
+#define OFFSETS_QTY (24*15)
 long offsets[OFFSETS_QTY] = {0};
 int offIndex = 0;
 double SMA = 0;
@@ -100,7 +100,7 @@ void Streaming::bufferFrame(){
   long oldOffset = offsets[offIndex];
   offsets[offIndex] = offset;
   offIndex = (offIndex + 1) % OFFSETS_QTY;
-    
+
   if (totalPackets < OFFSETS_QTY) {
     clock->setCorrection(offset);
     initialCum += offset;
@@ -109,7 +109,7 @@ void Streaming::bufferFrame(){
       SMA = initialCum/(double)OFFSETS_QTY;
     }
 
-    SMA = SMA + ((double)(offset - oldOffset))/((double)OFFSETS_QTY);
+    SMA = SMA + (double)offset/(double)OFFSETS_QTY - (double)oldOffset/(double)OFFSETS_QTY;
     long LSMA = round(SMA);
     clock->setCorrection(LSMA);
 
@@ -117,7 +117,7 @@ void Streaming::bufferFrame(){
 //      Serial.println(LSMA);
 //    }
   }
-  
+
   totalPackets++;
   Frame* frame = new Frame();
   frame->pt = playbackTime;
@@ -144,7 +144,7 @@ void Streaming::bufferFrame(){
   buffer.push_back(frame);
   updateBufferStat();
 
-  
+
 }
 
 Frame* Streaming::frameToPlay(){
@@ -153,10 +153,10 @@ Frame* Streaming::frameToPlay(){
   static float meanCount = 0;
   static float meanSum = 0;
   static int delayedPackets = 0;
-  
+
   if (buffer.size() == 0)
     return NULL;
-   
+
   time_r currentTime = clock->time();
   Frame* frame = buffer[0];
   time_r packetTime = frame->pt;
@@ -200,4 +200,3 @@ void Streaming::updateBufferStat(){
     configuration->Stats->streamingQueueMaxSize = buffer.size();
   }
 }
-
