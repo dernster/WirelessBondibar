@@ -1,11 +1,11 @@
 #include "Arduino.h"
 #include <ESP8266WiFi.h>
-#include "Configuration.h" 
+#include "Configuration.h"
 #include <vector>
 #include "Dictionary.h"
 using namespace std;
 
-#define time_r long
+#define time_r unsigned long
 
 #define LED 2
 
@@ -30,7 +30,7 @@ ClassName* ClassName::getInstance(){\
 
 #define singleton(ClassName) ClassName::getInstance()
 
-    
+
 void flashLed(int onMs, int offMs, int times);
 void printWifiStatus();
 String ipToString(IPAddress ip);

@@ -20,11 +20,12 @@ public:
   }
 
   time_r time(){
-    return ((time_r)millis()) + correction;
+    // return ((time_r)millis()) + correction;
+    return ((time_r)micros()) + correction;
   }
 
   time_r rawTime(){
-    return millis();
+    return micros();
   }
 
   time_r alarmStart;

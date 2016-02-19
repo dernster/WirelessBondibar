@@ -68,10 +68,11 @@ void Streaming::configurationChanged(){
 
 //=======================================
 
-#define OFFSETS_QTY (24*15)
-long offsets[OFFSETS_QTY] = {0};
-int offIndex = 0;
-double SMA = 0;
+// #define OFFSETS_QTY (24*15)
+// long offsets[OFFSETS_QTY] = {0};
+// int offIndex = 0;
+// double SMA = 0;
+double CMA = 0, prevCMA = 0;
 
 double initialCum = 0;
 
@@ -97,26 +98,31 @@ void Streaming::bufferFrame(){
   time_r myTime = clock->rawTime();
   long offset = serverTime - myTime;
 
-  long oldOffset = offsets[offIndex];
-  offsets[offIndex] = offset;
-  offIndex = (offIndex + 1) % OFFSETS_QTY;
+  prevCMA = CMA;
+  CMA = (double)offset/((double)(totalPackets+1)) + (double)(totalPackets*prevCMA)/(double)(totalPackets+1);
+  long LCMA = round(CMA);
+  clock->setCorrection(LCMA);
 
-  if (totalPackets < OFFSETS_QTY) {
-    clock->setCorrection(offset);
-    initialCum += offset;
-  } else {
-    if (totalPackets == OFFSETS_QTY){
-      SMA = initialCum/(double)OFFSETS_QTY;
-    }
+  // long oldOffset = offsets[offIndex];
+  // offsets[offIndex] = offset;
+  // offIndex = (offIndex + 1) % OFFSETS_QTY;
+  //
+  // if (totalPackets < OFFSETS_QTY) {
+  //   clock->setCorrection(offset);
+  //   initialCum += offset;
+  // } else {
+  //   if (totalPackets == OFFSETS_QTY){
+  //     SMA = initialCum/(double)OFFSETS_QTY;
+  //   }
+  //
+  //   SMA = SMA + (double)offset/(double)OFFSETS_QTY - (double)oldOffset/(double)OFFSETS_QTY;
+  //   long LSMA = round(SMA);
+  //   clock->setCorrection(LSMA);
 
-    SMA = SMA + (double)offset/(double)OFFSETS_QTY - (double)oldOffset/(double)OFFSETS_QTY;
-    long LSMA = round(SMA);
-    clock->setCorrection(LSMA);
-
-//    if ((seq % 24) == 0){
-//      Serial.println(LSMA);
-//    }
-  }
+   if ((totalPackets % 24*5) == 0){
+     Serial.println(LCMA);
+   }
+  // }
 
   totalPackets++;
   Frame* frame = new Frame();
