@@ -93,7 +93,7 @@ void Streaming::bufferFrame(){
   time_r playbackTime = dataBuffer[0] + (dataBuffer[1]<<8) + (dataBuffer[2]<<16) + (dataBuffer[3]<<24);
   short int seq = dataBuffer[4] + (dataBuffer[5]<<8);
 
-  time_r serverTime = playbackTime - 240;
+  time_r serverTime = playbackTime - 240000;
 
   time_r myTime = clock->rawTime();
   long offset = serverTime - myTime;
@@ -171,7 +171,7 @@ Frame* Streaming::frameToPlay(){
     times++;
     buffer.erase(buffer.begin());
     updateBufferStat();
-  }else if(currentTime >= packetTime + 1){
+  }else if(currentTime >= packetTime + 1000){
     Serial.println("Frame delayed!!!!!");
     times++;
     delayedPackets++;
