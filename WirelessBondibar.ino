@@ -14,7 +14,12 @@
 #include "TimeClock.h"
 
 extern "C" {
-#include "user_interface.h"
+  #include "ets_sys.h"
+  #include "os_type.h"
+  #include "osapi.h"
+  #include "mem.h"
+  #include "user_interface.h"
+  #include "cont.h"
 }
 
 
@@ -36,24 +41,24 @@ struct Modules{
     streaming->udp.stop();
     configuration->notifyObservers();
   }
-  
+
   Configuration* configuration;
   APServer* ap;
   WifiManager* wifiManager;
   Streaming* streaming;
   ControlServer* controlServer;
   Bondibar* bondibar;
-  TimeClock* clock; 
+  TimeClock* clock;
 };
 
 Modules* modules;
 Frame* playFrame;
 
 void setup() {
-  
+
   Serial.begin(9600);
   while (!Serial) {}
-  
+
   // configure LED
   pinMode(LED,OUTPUT);
   digitalWrite(LED,HIGH);
@@ -66,12 +71,12 @@ void setup() {
   hostName[str.length()] = '\0';
   wifi_station_set_hostname(hostName);
   delete[] hostName;
-  
+
   WiFi.disconnect();
-  WiFi.mode(WIFI_OFF);  
+  WiFi.mode(WIFI_OFF);
   delay(500);
-    
-//  Serial.setDebugOutput(true);
+
+ Serial.setDebugOutput(true);
   modules = new Modules();
 }
 //-------------------------------------------------
@@ -80,6 +85,10 @@ void setup() {
 
 
 void loop() {
+
+  if (msIsMultiple(modules->clock->rawTime(), 5*60*1000)){
+    system_print_meminfo();
+  }
 
   if (modules->streaming->frame()){
 
@@ -91,19 +100,18 @@ void loop() {
     delete playFrame;
 
   }else if (modules->controlServer->incomingCommand()){
-    
+
     modules->controlServer->processCommand();
-    
+
   }else if (!modules->streaming->active){
 
     modules->ap->handleClient();
-    
+
     if (!modules->controlServer->serverIsAlive){
       /* server is dead */
+      flashLed(300,250,3);
       Serial.println("SERVER IS DEAD! Reseting modules!");
       modules->reset();
     }
   }
 }
-
-

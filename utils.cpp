@@ -79,3 +79,13 @@ byte* copyBuffer(byte* src,int len){
   return dst;
 }
 
+bool msIsMultiple(time_r time, time_r multiple) {
+  static bool alreadyEntered = false;
+  if ((!alreadyEntered) && ((time % multiple) == 0)){
+    alreadyEntered = true;
+    return true;
+  } else if ((time % multiple) != 0){
+    alreadyEntered = false;
+  }
+  return false;
+}

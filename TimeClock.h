@@ -19,6 +19,10 @@ public:
     return ((time_r)millis()) + correction;
   }
 
+  time_r rawTime(){
+    return millis();
+  }
+
   time_r alarmStart;
   time_r alarmInterval;
   void setAlarmIn(time_r ms){

@@ -1,6 +1,6 @@
 #include "Arduino.h"
 #include <ESP8266WiFi.h>
-#include "Configuration.h" 
+#include "Configuration.h"
 #include <vector>
 #include "Dictionary.h"
 using namespace std;
@@ -30,7 +30,7 @@ ClassName* ClassName::getInstance(){\
 
 #define singleton(ClassName) ClassName::getInstance()
 
-    
+
 void flashLed(int onMs, int offMs, int times);
 void printWifiStatus();
 String ipToString(IPAddress ip);
@@ -39,3 +39,4 @@ void connectToWifi();
 vector<String> splitString(String string, char delimiter);
 Dictionary parseParameters(String params);
 byte* copyBuffer(byte* src,int len);
+bool msIsMultiple(time_r time, time_r multiple);
