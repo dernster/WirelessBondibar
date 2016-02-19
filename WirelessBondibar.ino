@@ -85,18 +85,21 @@ void setup() {
 
 bool yaMovi = false;
 
-void loop() {
-
-  // move pin in specific times
-  time_r time = modules->clock->time();
-  if (((time % 1000000) == 0) && !yaMovi){
+inline void movePin(time_r time){
+  static unsigned long movePinSeqNumber = 1;
+  if (time > (1000000*movePinSeqNumber)) {
     digitalWrite(NOTIFY_PIN,HIGH);
     digitalWrite(NOTIFY_PIN,LOW);
     yaMovi = true; /* to not move pin every time within 1ms */
-//    Serial.println("moviendo pata!");
-  } else if ((time % 1000000) != 0){
-    yaMovi = false;
+    movePinSeqNumber++;
+    Serial.println("moviendo pata!");
   }
+}
+
+void loop() {
+  // move pin in specific times
+  time_r time = modules->clock->time();
+  movePin(time);
 
   if (modules->streaming->frame()){
 
