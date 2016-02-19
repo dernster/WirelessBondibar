@@ -38,27 +38,27 @@ struct Modules{
     streaming->udp.stop();
     configuration->notifyObservers();
   }
-  
+
   Configuration* configuration;
   APServer* ap;
   WifiManager* wifiManager;
   Streaming* streaming;
   ControlServer* controlServer;
   Bondibar* bondibar;
-  TimeClock* clock; 
+  TimeClock* clock;
 };
 
 Modules* modules;
 Frame* playFrame;
 
 void setup() {
-    
+
   Serial.begin(9600);
   while (!Serial) {}
 
   pinMode(NOTIFY_PIN,OUTPUT);
   digitalWrite(NOTIFY_PIN,LOW);
-  
+
   // configure LED
   pinMode(LED,OUTPUT);
   digitalWrite(LED,HIGH);
@@ -71,11 +71,11 @@ void setup() {
   hostName[str.length()] = '\0';
   wifi_station_set_hostname(hostName);
   delete[] hostName;
-  
+
   WiFi.disconnect();
-  WiFi.mode(WIFI_OFF);  
+  WiFi.mode(WIFI_OFF);
   delay(500);
-    
+
 //  Serial.setDebugOutput(true);
   modules = new Modules();
 }
@@ -84,19 +84,21 @@ void setup() {
 
 
 bool yaMovi = false;
-
-void loop() {
-
-  // move pin in specific times 
-  time_r time = modules->clock->time();
-  if (((time % 1000) == 0) && !yaMovi){
+inline void movePin(time_r time){
+  static unsigned long movePinSeqNumber = 1;
+  if (time > (1000000*movePinSeqNumber)) {
     digitalWrite(NOTIFY_PIN,HIGH);
     digitalWrite(NOTIFY_PIN,LOW);
     yaMovi = true; /* to not move pin every time within 1ms */
-//    Serial.println("moviendo pata!");
-  } else if ((time % 1000) != 0){
-    yaMovi = false;
+    movePinSeqNumber++;
+    Serial.println("moviendo pata!");
   }
+}
+
+void loop() {
+  // move pin in specific times
+  time_r time = modules->clock->time();
+  movePin(time);
 
   if (modules->streaming->frame()){
 
@@ -108,18 +110,16 @@ void loop() {
     delete playFrame;
 
   }else if (modules->controlServer->incomingCommand()){
-    
+
     modules->controlServer->processCommand();
-    
+
   }else if (!modules->streaming->active){
 
     modules->ap->handleClient();
-    
+
     if (!modules->controlServer->serverIsAlive){
       /* server is dead */
       modules->reset();
     }
   }
 }
-
-
