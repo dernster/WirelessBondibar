@@ -16,7 +16,7 @@ public:
   }
 
   TimeClock(){
-    correction = 0;
+    correction = 0ul;
   }
 
   time_r time(){
