@@ -39,6 +39,7 @@ struct Modules{
 
   void reset(){
     streaming->udp.stop();
+    bondibar->turnOffLights();
     configuration->notifyObservers();
   }
 
@@ -76,7 +77,7 @@ void setup() {
   WiFi.mode(WIFI_OFF);
   delay(500);
 
- Serial.setDebugOutput(true);
+  Serial.setDebugOutput(true);
   modules = new Modules();
 }
 //-------------------------------------------------

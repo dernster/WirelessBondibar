@@ -98,6 +98,11 @@ void Streaming::bufferFrame(){
   int offset = 5 + configuration->Device->firstPixel*3;
   frame->data = copyBuffer(dataBuffer + offset, frame->len);
 
+  /* update server offset statistics */
+  time_r serverTime = playbackTime - 200;
+  time_r myTime = clock->rawTime();
+  clock->addServerOffsetSample(serverTime - myTime);
+
   totalPackets++;
   if (!firstFrame && (frame->seq != expectedSeq)){
    Serial.println("Wrong seq number! expected=" + String(expectedSeq) + " got=" + String(frame->seq));
@@ -105,7 +110,7 @@ void Streaming::bufferFrame(){
     configuration->Stats->packetLossRate = (float)lostPackets/((float)totalPackets);
   }
 
-  expectedSeq = frame->seq + 1;
+  expectedSeq = (frame->seq + 1) % 256;
 
   if (buffer.size() >= 200){
     Serial.println("Buffer overloaded!");

@@ -105,7 +105,7 @@ SenderoControlHeader ControlServer::processCommand(){
     byte offsetBytes[4];
     client.readBytes((byte*)offsetBytes,4);
     long offset = readBuffer<long>(offsetBytes);
-    clock->addCorrection(offset);
+    clock->addServerOffsetSample(offset);
   }
 
 
@@ -144,7 +144,7 @@ SenderoControlHeader ControlServer::processCommand(){
 }
 
 void ControlServer::obtainServerEndpoint(){
-  
+
   Serial.println("Discovering server on port " + String(configuration->ControlServer->discoveryPort) + "...");
   APServer* ap = singleton(APServer);
 
