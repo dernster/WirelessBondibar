@@ -79,7 +79,7 @@ void Streaming::configurationChanged(){
 }
 
 void Streaming::bufferFrame(){
-
+  static bool waitingForSyncFrame = true;
   static bool firstFrame = true;
   static byte expectedSeq = 0;
   static unsigned long totalPackets = 0;
@@ -91,12 +91,24 @@ void Streaming::bufferFrame(){
   time_r playbackTime = dataBuffer[0] + (dataBuffer[1]<<8) + (dataBuffer[2]<<16) + (dataBuffer[3]<<24);
   byte seq = dataBuffer[4];
 
+  if ((waitingForSyncFrame) && ((seq % (24*5)) == 0)){
+    waitingForSyncFrame = false;
+  }
+
+  if (waitingForSyncFrame)
+    return;
+
   Frame* frame = new Frame();
   frame->pt = playbackTime;
   frame->seq = seq;
   frame->len = configuration->Device->managedPixelsQty*3;
   int offset = 5 + configuration->Device->firstPixel*3;
   frame->data = copyBuffer(dataBuffer + offset, frame->len);
+
+  /* update server offset statistics */
+  time_r serverTime = playbackTime - 200;
+  time_r myTime = clock->rawTime();
+  clock->addServerOffsetSample(serverTime - myTime);
 
   totalPackets++;
   if (!firstFrame && (frame->seq != expectedSeq)){
@@ -105,7 +117,7 @@ void Streaming::bufferFrame(){
     configuration->Stats->packetLossRate = (float)lostPackets/((float)totalPackets);
   }
 
-  expectedSeq = frame->seq + 1;
+  expectedSeq = (frame->seq + 1) % 256;
 
   if (buffer.size() >= 200){
     Serial.println("Buffer overloaded!");

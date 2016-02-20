@@ -3,7 +3,6 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 #include <EEPROM.h>
-#include "Storage.h"
 #include "Bondibar.h"
 #include "Configuration.h"
 #include "Streaming.h"
@@ -12,6 +11,8 @@
 #include "WifiManager.h"
 #include "APServer.h"
 #include "TimeClock.h"
+
+#define NOTIFY_PIN 5
 
 extern "C" {
   #include "ets_sys.h"
@@ -39,6 +40,7 @@ struct Modules{
 
   void reset(){
     streaming->udp.stop();
+    bondibar->turnOffLights();
     configuration->notifyObservers();
   }
 
@@ -59,6 +61,9 @@ void setup() {
   Serial.begin(9600);
   while (!Serial) {}
 
+  pinMode(NOTIFY_PIN,OUTPUT);
+  digitalWrite(NOTIFY_PIN, LOW);
+
   // configure LED
   pinMode(LED,OUTPUT);
   digitalWrite(LED,HIGH);
@@ -76,19 +81,24 @@ void setup() {
   WiFi.mode(WIFI_OFF);
   delay(500);
 
- Serial.setDebugOutput(true);
+  Serial.setDebugOutput(true);
   modules = new Modules();
 }
 //-------------------------------------------------
 
-
-
-
 void loop() {
 
-  if (msIsMultiple(modules->clock->rawTime(), 5*60*1000)){
-    system_print_meminfo();
+  // move pin in specific times
+  time_r time = modules->clock->time();
+  if (msIsMultiple(time,1000)){
+    digitalWrite(NOTIFY_PIN,HIGH);
+    digitalWrite(NOTIFY_PIN,LOW);
+    // Serial.println("moviendo pata!");
   }
+
+  // if (msIsMultiple(time, 5*60*1000)){
+  //   system_print_meminfo();
+  // }
 
   if (modules->streaming->frame()){
 

@@ -34,6 +34,16 @@ Bondibar::Bondibar(){
   sendData(black,LEN);
 }
 
+void Bondibar::turnOffLights(){
+  int size = singleton(Configuration)->Device->managedPixelsQty*3;
+  byte* black = new byte[size];
+  for(int i = 0; i < size; i++){
+    black[i] = 0;
+  }
+  sendData(black, size);
+  delete [] black;
+}
+
 void Bondibar::sendData(byte* data, int len){
   SPI.writeBytes(data,len);
 }

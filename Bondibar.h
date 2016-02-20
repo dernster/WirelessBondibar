@@ -10,7 +10,7 @@ public:
   Bondibar();
   void sendData(byte* data, int len);
   void sendData(byte* data, int offset, int len);
+  void turnOffLights();
 
   void configurationChanged();
 };
-

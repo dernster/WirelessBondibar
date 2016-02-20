@@ -1,6 +1,5 @@
 #pragma once
 #include "utils.h"
-#include "Storage.h"
 #include "ConfigurationMacros.h"
 
 
@@ -40,7 +39,7 @@ DefineConfig( Wifi,
 //-------------ConfigurationServer---------------
 
 DefineConfig( ControlServer,
-  
+
   var( int, port,
   {
     config = value.toInt();
@@ -48,7 +47,7 @@ DefineConfig( ControlServer,
   {
     return String(config);
   })
-  
+
   var( int, discoveryPort,
   {
     config = value.toInt();
@@ -56,7 +55,7 @@ DefineConfig( ControlServer,
   {
     return String(config);
   })
-  
+
   var( int, packetLength,
   {
     config = value.toInt();
@@ -84,7 +83,7 @@ DefineConfig( ControlServer,
 //-------------Device---------------
 
 DefineConfig( Device,
-  
+
   persistentVar( int, number,
   {
     config = value.toInt();
@@ -128,8 +127,24 @@ DefineConfig( Streaming,
   {
     return config;
   })
-  
+
   var( int, port,
+  {
+    config = value.toInt();
+  },
+  {
+    return String(config);
+  })
+
+  var( int, smaWindowPacketsQty,
+  {
+    config = value.toInt();
+  },
+  {
+    return String(config);
+  })
+
+  var( int, playbackDelayTime,
   {
     config = value.toInt();
   },
@@ -139,7 +154,8 @@ DefineConfig( Streaming,
 
   expose(
       port,
-      serverIP
+      serverIP,
+      smaWindowPacketsQty
   );
 );
 
@@ -173,7 +189,7 @@ DefineConfig( Stats,
   {
     return String(config);
   })
- 
+
   readOnly( float, playbackMeanDelay,
   {
     return String(config,4); // milliseconds
@@ -214,7 +230,7 @@ DefineConfig( Stats,
 //-------------Global---------------
 
 DefineConfig( Global,
-  
+
   var( int, pixelsQty,
   {
     config = value.toInt();
@@ -222,7 +238,7 @@ DefineConfig( Global,
   {
     return String(config);
   })
- 
+
   expose(
       pixelsQty
   );
@@ -238,7 +254,7 @@ class Configuration{
 SINGLETON_H(Configuration)
 public:
   Configuration(){
-    
+
     configs.push_back(Wifi = new _Wifi);
     configs.push_back(ControlServer = new _ControlServer);
     configs.push_back(Device = new _Device);
@@ -259,7 +275,7 @@ public:
   }
 
   vector<Config*> configs;
-  
+
   _Wifi* Wifi;
   _ControlServer* ControlServer;
   _Device* Device;
@@ -332,8 +348,3 @@ public:
       notifyObservers();
   }
 };
-
-
-
-
-
