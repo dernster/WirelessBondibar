@@ -1,12 +1,13 @@
 #include "APServer.h"
 #include <ESP8266mDNS.h>
+#include "Debug.h"
 
 SINGLETON_CPP(APServer)
 
 String APServer::apIP = "";
 
 APServer::APServer(){
-  Serial.print("Configuring access point...");
+  Debug.print("Configuring access point...");
   Configuration* conf = singleton(Configuration);
   server = NULL;
   setup();
@@ -15,7 +16,7 @@ APServer::APServer(){
 void APServer::setup(){
   if (server)
     delete server;
-  Configuration* conf = singleton(Configuration);  
+  Configuration* conf = singleton(Configuration);
   server = new ESP8266WebServer(80);
   String n = String(conf->Device->number);
   apIP = "192.168.4.1";
@@ -23,12 +24,12 @@ void APServer::setup(){
   WiFi.softAP(("WBB-" + n).c_str());
 
   IPAddress myIP = WiFi.softAPIP();
-  Serial.print("AP IP address: ");
-  Serial.println(myIP);
+  Debug.print("AP IP address: ");
+  Debug.println(myIP);
   server->on("/", handleRoot);
   server->on("/save", HTTP_POST,handleSave);
   server->begin();
-  Serial.println("HTTP server started");
+  Debug.println("HTTP server started");
 }
 
 void APServer::handleClient(){
@@ -36,7 +37,7 @@ void APServer::handleClient(){
 }
 
 void APServer::handleRoot(){
-  Serial.println("Page requested!");
+  Debug.println("Page requested!");
   APServer* ap = singleton(APServer);
   ap->server->send(200, "text/html", buildPage());
 }
@@ -51,18 +52,18 @@ void APServer::handleSave(){
   }
 
   if (params.size() > 0){
-    Serial.println("Configs saved!");
+    Debug.println("Configs saved!");
     singleton(Configuration)->setValues(params);
   }
-  
+
 }
 
 String APServer::buildPage(){
-  
+
   Configuration* conf = singleton(Configuration);
   String title = "Settings < Device " + String(conf->Device->number) + " >";
   String page1 = ""
-""  
+""
 "<!DOCTYPE html>"
 "<html>"
 "<body>"
@@ -128,7 +129,7 @@ String APServer::buildPage(){
   for(int i = 0; i < vars.size(); i++){
     IStringConvertibleVariable* var = vars[i];
     inputs += "<tr>";
-    inputs += "<td>" + var->getTag() + "</td>"; 
+    inputs += "<td>" + var->getTag() + "</td>";
     inputs += String("<td align=\"center\">") + "<input align=\"middle\"" + (var->isPersistentVariable() ? styleForPersistentInput : styleForInput) + " type=\"text\" name=\"" + var->getTag() +"\" value=\"" + var->getString() + "\"><br>" + "</td>";
     inputs += "</tr>";
   }
@@ -148,7 +149,6 @@ String page2 = ""
 }
 
 void APServer::configurationChanged(){
-  Serial.println("APServer::configurationChanged");
+  Debug.println("APServer::configurationChanged");
   setup();
 }
-

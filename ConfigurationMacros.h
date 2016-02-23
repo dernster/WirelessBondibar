@@ -2,6 +2,7 @@
 #include "Dictionary.h"
 #include <EEPROM.h>
 #include <typeinfo>
+#include "Debug.h"
 
 #include <stdarg.h>
 #include <vector>
@@ -11,7 +12,7 @@ typedef String (*getterPtr)(void* intance);
 
 class IStringConvertibleVariable{
 public:
-  virtual String getString() = 0; 
+  virtual String getString() = 0;
   virtual String getTag() = 0;
   virtual String getName() = 0;
   virtual bool isPersistentVariable() = 0;
@@ -29,7 +30,7 @@ public:
       }
     }
   };
-  
+
   String getTag(const String& varName){
     return getPrefix() + "." + varName;
   }
@@ -53,7 +54,7 @@ public:
     }
     return result;
   }
-  
+
   String toString(){
     String result = "";
     int size = getMapperLength();
@@ -64,7 +65,7 @@ public:
     }
     return result;
   }
-  
+
   virtual String getPrefix() = 0;
   virtual IStringConvertibleVariable** getMapper() = 0;
   virtual int getMapperLength() = 0;
@@ -84,7 +85,7 @@ public:
     this->getter = getter;
     this->config = config;
   }
-  
+
   bool isPersistentVariable(){
     return (type() == Types::PERSISTENT_VAR);
   }
@@ -108,10 +109,10 @@ public:
   String getName(){
     return name;
   }
-  
+
   String name;
   setterPtr setter;
-  getterPtr getter;  
+  getterPtr getter;
   static int persistentVariablesSize;
   static bool eepromWasInitialized;
   Config* config;
@@ -141,15 +142,15 @@ public:
       initEEPROM();
       StringConvertibleVariable::eepromWasInitialized = true;
     }
-    
+
     isString = std::is_same<T, String>::value;
     address = StringConvertibleVariable::persistentVariablesSize;
     StringConvertibleVariable::persistentVariablesSize += isString? STR_SIZE : sizeof(*variable);
-    Serial.println(String("Creating persistent variable ") + Variable<T>::name);
+    Debug.println(String("Creating persistent variable ") + Variable<T>::name);
     read();
 
     if (StringConvertibleVariable::persistentVariablesSize > 512){
-      Serial.println("WARNING! persistent vars exceed EEPROM size");
+      Debug.println("WARNING! persistent vars exceed EEPROM size");
     }
   }
 
@@ -158,11 +159,11 @@ public:
     byte v;
     EEPROM.get(0,v);
     if (v != 0xAA){
-      Serial.println("Initializing EEPROM...");
+      Debug.println("Initializing EEPROM...");
       EEPROM.write(0,0xAA);
       for(int i = 1; i < 512; i++)
         EEPROM.write(i,0);
-      Serial.println("Initializing EEPROM...Done!");
+      Debug.println("Initializing EEPROM...Done!");
     }
     EEPROM.end();
     delay(500);
@@ -173,14 +174,14 @@ public:
     EEPROM.begin(512);
     if (isString){
       String res = "";
-//      Serial.println(String("starting address = ") + String(address));
+//      Debug.println(String("starting address = ") + String(address));
       for(int addr = address, i = 0; i < STR_SIZE-1; i++, addr++){
         char r = char(EEPROM.read(addr));
-//        Serial.println(String("reading ") + String(i));
-//        Serial.println(r);
+//        Debug.println(String("reading ") + String(i));
+//        Debug.println(r);
         if (r == '\0')
           break;
-        
+
         res += String(r);
       }
       *((String*)Variable<T>::variable) = res;
@@ -188,11 +189,11 @@ public:
       EEPROM.get<T>(address,*Variable<T>::variable);
     }
     EEPROM.end();
-    Serial.println(String("Variable ") + Variable<T>::name + " read. -> " + String(*Variable<T>::variable));
+    Debug.println(String("Variable ") + Variable<T>::name + " read. -> " + String(*Variable<T>::variable));
   }
-  
+
   virtual void persist(){
-//    Serial.println(String("starting address = ") + String(address));
+//    Debug.println(String("starting address = ") + String(address));
     EEPROM.begin(512);
     if (!isString){
       EEPROM.put<T>(address,*Variable<T>::variable);
@@ -201,20 +202,20 @@ public:
       int addr = address;
       for(int i = 0; i < STR_SIZE-1 && i < var->length(); i++, addr++){
         EEPROM.write(addr,var->charAt(i));
-//        Serial.println(var->charAt(i));
+//        Debug.println(var->charAt(i));
       }
       EEPROM.write(addr,'\0');
     }
     EEPROM.end();
     delay(500);
 
-    Serial.println(String("Variable ") + Variable<T>::name + " write. -> " + String(*Variable<T>::variable));
+    Debug.println(String("Variable ") + Variable<T>::name + " write. -> " + String(*Variable<T>::variable));
   }
 
   virtual Type::Types type(){
     return Type::Types::PERSISTENT_VAR;
   }
-  
+
   int address;
 };
 
@@ -255,7 +256,7 @@ type name; setterHeader(name,{}); getterHeader(name,getBody);
 
 //---------------------------
 
-#define FE_1(WHAT, X)       WHAT(X) 
+#define FE_1(WHAT, X)       WHAT(X)
 #define FE_2(WHAT, X, ...)  WHAT(X)FE_1(WHAT, __VA_ARGS__)
 #define FE_3(WHAT, X, ...)  WHAT(X)FE_2(WHAT, __VA_ARGS__)
 #define FE_4(WHAT, X, ...)  WHAT(X)FE_3(WHAT, __VA_ARGS__)
@@ -267,10 +268,10 @@ type name; setterHeader(name,{}); getterHeader(name,getBody);
 #define FE_10(WHAT, X, ...) WHAT(X)FE_9(WHAT, __VA_ARGS__)
 //... repeat as needed
 
-#define GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,NAME,...) NAME 
+#define GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,NAME,...) NAME
 #define FOR_EACH(action,...) \
   GET_MACRO(__VA_ARGS__,FE_10,FE_9,FE_8,FE_7,FE_6,FE_5,FE_4,FE_3,FE_2,FE_1)(action,__VA_ARGS__)
-  
+
 //--------------------------
 
 
@@ -330,7 +331,7 @@ public:\
         return array[i];\
       }\
     }\
-    Serial.println(String("mapping error with " + key));\
+    Debug.println(String("mapping error with " + key));\
     return NULL;\
   }\
 public:\
@@ -346,10 +347,3 @@ String getPrefix(){\
 __VA_ARGS__\
 \
 };
-
-
-
-
-  
-
-

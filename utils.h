@@ -1,6 +1,6 @@
+#pragma once
 #include "Arduino.h"
 #include <ESP8266WiFi.h>
-#include "Configuration.h"
 #include <vector>
 #include "Dictionary.h"
 using namespace std;

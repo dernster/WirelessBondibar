@@ -3,6 +3,7 @@
 #include <vector>
 #include "TimeClock.h"
 #include "Streaming.h"
+#include "Debug.h"
 using namespace std;
 
 SINGLETON_CPP(ControlServer)
@@ -59,20 +60,20 @@ void ControlServer::externalCommandReceived(){
 SenderoControlHeader ControlServer::processCommand(){
 
   if (!client.connected()){
-    Serial.println("NO CONNECTION!!!");
+    Debug.println("NO CONNECTION!!!");
   }
 
   SenderoControlHeader header;
   int qty = client.readBytes((byte*)&header,header.size());
   if (qty != header.size()){
-    Serial.println("Lei menos del cabezal!!!!");
+    Debug.println("Lei menos del cabezal!!!!");
   }
 
   SenderoControlHeader::Command command = header.type();
 
   TimeClock* clock = singleton(TimeClock);
 
-  Serial.println(header.toString());
+  Debug.println(header.toString());
 
 
   if (header.requestClockFlag){
@@ -87,15 +88,15 @@ SenderoControlHeader ControlServer::processCommand(){
   }
 
   if (header.requestStatsFlag){
-    Serial.println("el ratee");
-    Serial.println(configuration->Stats->bitRate);
+    Debug.println("el ratee");
+    Debug.println(configuration->Stats->bitRate);
 
     /* stats are dirty if streaming is active */
     configuration->Stats->dirty = singleton(Streaming)->active;
 
     String stats = configuration->Stats->toString();
-    Serial.println("requestStatsFlag");
-    Serial.println(stats);
+    Debug.println("requestStatsFlag");
+    Debug.println(stats);
     client.write((uint8_t*)&header,header.size());
     client.write((uint8_t*)stats.c_str(),stats.length() + 1);
   }
@@ -126,18 +127,18 @@ SenderoControlHeader ControlServer::processCommand(){
       i++;
     }
 
-    Serial.println(buffer);
+    Debug.println(buffer);
 
     String configs = String(buffer);
     Dictionary dict = parseParameters(configs);
     configuration->setValues(dict,false);
 
-    Serial.println(String("Configs setted! ") + configs);
+    Debug.println(String("Configs setted! ") + configs);
   }
 
   if (header.closeConnectionFlag){
     client.stop();
-    Serial.println("Connection closed!");
+    Debug.println("Connection closed!");
   }
 
   return header;
@@ -145,7 +146,7 @@ SenderoControlHeader ControlServer::processCommand(){
 
 void ControlServer::obtainServerEndpoint(){
 
-  Serial.println("Discovering server on port " + String(configuration->ControlServer->discoveryPort) + "...");
+  Debug.println("Discovering server on port " + String(configuration->ControlServer->discoveryPort) + "...");
   APServer* ap = singleton(APServer);
 
   while(true){
@@ -154,7 +155,7 @@ void ControlServer::obtainServerEndpoint(){
     ap->handleClient();
 
     // send broadcast packet asking IP and Port of server
-    Serial.println("Sending message to register");
+    Debug.println("Sending message to register");
     IPAddress ip = WiFi.localIP();
     ip[3] = 255;
     int res = udp.beginPacket(ip,configuration->ControlServer->discoveryPort);
@@ -169,9 +170,9 @@ void ControlServer::obtainServerEndpoint(){
       ap->handleClient();
       if (client = server->available()){
         configuration->Streaming->serverIP = client.remoteIP().toString();
-        Serial.println("got client!");
+        Debug.println("got client!");
 
-        Serial.println("waiting for configurations and clockSync...");
+        Debug.println("waiting for configurations and clockSync...");
 
         /* receive initial configuration */
         bool configurationReceived = false;
@@ -183,7 +184,7 @@ void ControlServer::obtainServerEndpoint(){
             clockSync = clockSync || h.clockCorrectionOffsetFlag;
           }
         }
-        Serial.println("Going for streaming!");
+        Debug.println("Going for streaming!");
         return;
       }
     }
@@ -201,7 +202,7 @@ ControlServer::~ControlServer(){
 }
 
 void ControlServer::configurationChanged(){
-  Serial.println("ControlServer::configurationChanged()");
+  Debug.println("ControlServer::configurationChanged()");
   setup();
 }
 

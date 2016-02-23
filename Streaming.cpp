@@ -1,5 +1,6 @@
 #include "Streaming.h"
 #include "ControlServer.h"
+#include "Debug.h"
 
 SINGLETON_CPP(Streaming)
 
@@ -19,7 +20,7 @@ void Streaming::setup(){
     delete [] dataBuffer;
   }
   dataBuffer = new byte[packetSize];
-  Serial.println(String("dataBuffer size = ") + String(packetSize));
+  Debug.println(String("dataBuffer size = ") + String(packetSize));
   active = true;
 }
 
@@ -32,7 +33,7 @@ bool Streaming::frame(){
     }
     if (packetIsThere != packetSize){
       udp.flush();
-      Serial.printf("Wrong size of streaming packet! %i\n",packetIsThere);
+      Debug.printf("Wrong size of streaming packet! %i\n",packetIsThere);
       return false;
     }
   }
@@ -51,7 +52,7 @@ bool Streaming::frame(){
     active = ((actualTime - lastPacketTime) < 5*1000); /* 5 seconds */
   }
   if (lastActive && !active){
-    Serial.println("Streaming is now INACTIVE!");
+    Debug.println("Streaming is now INACTIVE!");
     stop = millis() - (actualTime - lastPacketTime);
 
     /* update configuration */
@@ -60,7 +61,7 @@ bool Streaming::frame(){
   }else if (!lastActive && active){
     start = lastPacketTime;
     bytesReceived = 0;
-    Serial.println("Streaming is now ACTIVE!");
+    Debug.println("Streaming is now ACTIVE!");
   }
 
   return packetIsThere;
@@ -74,7 +75,7 @@ Streaming::~Streaming(){
 }
 
 void Streaming::configurationChanged(){
-  Serial.println("Streaming::configurationChanged()");
+  Debug.println("Streaming::configurationChanged()");
   setup();
 }
 
@@ -105,7 +106,7 @@ void Streaming::bufferFrame(){
 
   totalPackets++;
   if (!firstFrame && (frame->seq != expectedSeq)){
-   Serial.println("Wrong seq number! expected=" + String(expectedSeq) + " got=" + String(frame->seq));
+   Debug.println("Wrong seq number! expected=" + String(expectedSeq) + " got=" + String(frame->seq));
     lostPackets++;
     configuration->Stats->packetLossRate = (float)lostPackets/((float)totalPackets);
   }
@@ -113,7 +114,7 @@ void Streaming::bufferFrame(){
   expectedSeq = (frame->seq + 1) % 256;
 
   if (buffer.size() >= 200){
-    Serial.println("Buffer overloaded!");
+    Debug.println("Buffer overloaded!");
     return;
   }
 
@@ -141,7 +142,7 @@ Frame* Streaming::frameToPlay(){
     buffer.erase(buffer.begin());
     updateBufferStat();
   }else if(currentTime >= packetTime + 1){
-    Serial.println("Frame delayed!!!!!");
+    Debug.println("Frame delayed!!!!!");
     times++;
     delayedPackets++;
     buffer.erase(buffer.begin());

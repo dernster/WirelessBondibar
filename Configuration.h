@@ -1,7 +1,8 @@
 #pragma once
+#include "Arduino.h"
 #include "utils.h"
-#include "Storage.h"
 #include "ConfigurationMacros.h"
+#include "Debug.h"
 
 
 //-------------Wifi---------------
@@ -342,7 +343,7 @@ public:
   void setValues(Dictionary& dict, bool notify = true){
     for(int i = 0; i < dict.size(); i++){
       StringPair& pair = dict.pairAt(i);
-      Serial.println(String("setting ") + pair.first + "=" + pair.second);
+      Debug.println(String("setting ") + pair.first + "=" + pair.second);
       setValue(pair.first,pair.second);
     }
     if (notify)

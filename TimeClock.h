@@ -1,5 +1,6 @@
 #pragma once
 #include "utils.h"
+#include "Debug.h"
 
 class SMA{
 private:
@@ -67,7 +68,7 @@ public:
     n++;
     correction = getServerOffsetsSMACalculator()->addSample(serverOffset);
     if ((n%(24*2)) == 0)
-      Serial.println(correction);
+      Debug.println(correction);
   }
 
   TimeClock(){

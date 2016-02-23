@@ -1,9 +1,9 @@
 #include <SPI.h>
+#include "Debug.h"
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 #include <EEPROM.h>
-#include "Storage.h"
 #include "Bondibar.h"
 #include "Configuration.h"
 #include "Streaming.h"
@@ -57,13 +57,12 @@ Frame* playFrame;
 
 void setup() {
 
-  Serial.begin(9600);
-  while (!Serial) {}
-
   // configure LED
   pinMode(LED,OUTPUT);
   digitalWrite(LED,HIGH);
-  flashLed(300,250,3);
+  // flashLed(300,250,3);
+
+  Debug.init();
 
   /* set hostname, this works only from setup function */
   String str = "WBB-" + String(singleton(Configuration)->Device->number);
@@ -77,7 +76,6 @@ void setup() {
   WiFi.mode(WIFI_OFF);
   delay(500);
 
-  Serial.setDebugOutput(true);
   modules = new Modules();
 }
 //-------------------------------------------------
@@ -87,7 +85,7 @@ void setup() {
 
 void loop() {
 
-  if (msIsMultiple(modules->clock->rawTime(), 5*60*1000)){
+  if (msIsMultiple(modules->clock->rawTime(), 5*1000)){
     system_print_meminfo();
   }
 
@@ -111,7 +109,7 @@ void loop() {
     if (!modules->controlServer->serverIsAlive){
       /* server is dead */
       flashLed(300,250,3);
-      Serial.println("SERVER IS DEAD! Reseting modules!");
+      Debug.println("SERVER IS DEAD! Reseting modules!");
       modules->reset();
     }
   }

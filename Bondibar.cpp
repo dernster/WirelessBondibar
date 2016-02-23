@@ -1,5 +1,6 @@
 #include "Bondibar.h"
 #include "utils.h"
+#include "Debug.h"
 
 SINGLETON_CPP(Bondibar)
 
@@ -53,5 +54,5 @@ void Bondibar::sendData(byte* data, int offset, int len){
 }
 
 void Bondibar::configurationChanged(){
-  Serial.println("BondibarManager::configurationChanged()");
+  Debug.println("BondibarManager::configurationChanged()");
 }
