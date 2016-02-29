@@ -91,12 +91,12 @@ void Streaming::bufferFrame(){
   time_r playbackTime = dataBuffer[0] + (dataBuffer[1]<<8) + (dataBuffer[2]<<16) + (dataBuffer[3]<<24);
   byte seq = dataBuffer[4];
 
-  if ((waitingForSyncFrame) && ((seq % (24*5)) == 0)){
-    waitingForSyncFrame = false;
-  }
-
-  if (waitingForSyncFrame)
-    return;
+  // if ((waitingForSyncFrame) && ((seq % (24*5)) == 0)){
+  //   waitingForSyncFrame = false;
+  // }
+  //
+  // if (waitingForSyncFrame)
+  //   return;
 
   Frame* frame = new Frame();
   frame->pt = playbackTime;
