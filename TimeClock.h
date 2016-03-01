@@ -11,40 +11,29 @@ public:
 
   time_t minimumOffset = 2147483647;
   int multiplier = 1;
-  bool inExpirationPeriod = false;
+  time_t increment = 0;
   void addServerOffsetSample(time_t serverOffset){
-    static long n = 0;
+    static bool firstTime = true;
     time_t currentTime = time();
 
-    if (n != 0 && !inExpirationPeriod && (currentTime >= multiplier*EXPIRATION_PERIOD)){
-      inExpirationPeriod = true;
+    if (!firstTime && (currentTime >= multiplier*EXPIRATION_PERIOD)){
       multiplier++;
+      minimumOffset = abs(correction)  + (long)pow(2,increment);
+      Serial.printf("Expiration -> minOff %i\n", minimumOffset);
+      increment++;
     }
 
-    if (inExpirationPeriod){
-      minimumOffset = (double)minimumOffset * 1.05;
-      // Serial.printf("Incrementing minimum offset -> minimumOffset: %i\n", minimumOffset);
+    if (abs(serverOffset) < minimumOffset){
+      Serial.printf("Setting offset %i\n", serverOffset);
+      minimumOffset = abs(serverOffset);
+      correction = serverOffset;
+      increment = 0;
     }
 
-    if (abs(serverOffset) < abs(minimumOffset)){
-      // Serial.printf("Setting offset %i\n", serverOffset);
-      minimumOffset = serverOffset;
-
-      if (inExpirationPeriod){
-        // Serial.println("Expiration perdiod finished!");
-        inExpirationPeriod = false;
-      }
+    if (firstTime) {
+      firstTime = false;
+      multiplier = ((double)time()/(double)EXPIRATION_PERIOD) + 1;
     }
-
-    if (!inExpirationPeriod){
-      correction = minimumOffset;
-    }
-
-    if (n == 0){
-      multiplier = (double)time()/(double)EXPIRATION_PERIOD + 1;
-    }
-
-    n++;
   }
 
   TimeClock(){

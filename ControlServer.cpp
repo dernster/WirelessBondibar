@@ -177,6 +177,10 @@ void ControlServer::obtainServerEndpoint(){
         bool configurationReceived = false;
         bool clockSync = false;
         while (!configurationReceived || !clockSync){
+
+          /* allow connections from AP */
+          ap->handleClient();
+
           if (incomingCommand()){
             SenderoControlHeader h = processCommand();
             configurationReceived = configurationReceived || h.configurationFlag;
