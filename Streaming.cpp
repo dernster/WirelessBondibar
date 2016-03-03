@@ -13,6 +13,7 @@ Streaming::Streaming(){
 
 void Streaming::setup(){
   bytesReceived = 0;
+  lastArrivedPacketTimestamp = 0;
   udp.begin(configuration->Streaming->port);
   packetSize = configuration->Global->pixelsQty*3 + 5; /* 6 = timestamp + seqNumber */
   if (dataBuffer){
@@ -25,7 +26,13 @@ void Streaming::setup(){
 
 bool Streaming::frame(){
   int packetIsThere = udp.parsePacket();
+
   if (packetIsThere){
+
+    /* Every packet gets timestamped instantly when arrives.
+       Later on, the offset with server is calculated using this arrival timestamp. */
+    lastArrivedPacketTimestamp = clock->rawTime();
+
     if(udp.remoteIP().toString() != configuration->Streaming->serverIP){
       udp.flush();
       return false;
@@ -41,18 +48,18 @@ bool Streaming::frame(){
   unsigned long actualTime;
 
   /* active-inactive update */
-  static unsigned long lastPacketTime = 0;
+  static time_t lastPacketTime = 0;
   if (packetIsThere){
+    lastPacketTime = clock->rawTime();
     singleton(ControlServer)->externalCommandReceived();
-    lastPacketTime = millis();
     active = true;
   }else{
-    actualTime = millis();
+    actualTime = clock->rawTime();
     active = ((actualTime - lastPacketTime) < 5*1000); /* 5 seconds */
   }
   if (lastActive && !active){
     Serial.println("Streaming is now INACTIVE!");
-    stop = millis() - (actualTime - lastPacketTime);
+    stop = clock->rawTime() - (actualTime - lastPacketTime);
 
     /* update configuration */
     configuration->Stats->bitRate = (8*bytesReceived/((stop - start)/1000.0))/1000.0;
@@ -91,6 +98,10 @@ void Streaming::bufferFrame(){
   time_r playbackTime = dataBuffer[0] + (dataBuffer[1]<<8) + (dataBuffer[2]<<16) + (dataBuffer[3]<<24);
   byte seq = dataBuffer[4];
 
+  /* update server offset statistics */
+  time_r serverTime = playbackTime - 200;
+  clock->addServerOffsetSample(serverTime - lastArrivedPacketTimestamp);
+
   // if ((waitingForSyncFrame) && ((seq % (24*5)) == 0)){
   //   waitingForSyncFrame = false;
   // }
@@ -104,11 +115,6 @@ void Streaming::bufferFrame(){
   frame->len = configuration->Device->managedPixelsQty*3;
   int offset = 5 + configuration->Device->firstPixel*3;
   frame->data = copyBuffer(dataBuffer + offset, frame->len);
-
-  /* update server offset statistics */
-  time_r serverTime = playbackTime - 200;
-  time_r myTime = clock->rawTime();
-  clock->addServerOffsetSample(serverTime - myTime);
 
   totalPackets++;
   if (!firstFrame && (frame->seq != expectedSeq)){

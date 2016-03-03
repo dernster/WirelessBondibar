@@ -23,6 +23,7 @@ private:
   unsigned long start;
   unsigned long stop;
   unsigned long bytesReceived;
+  time_t lastArrivedPacketTimestamp;
   Configuration* configuration;
   TimeClock* clock;
   void setup();
@@ -41,5 +42,3 @@ public:
   ~Streaming();
   bool active;
 };
-
-
