@@ -8,7 +8,7 @@ class Frame{
 public:
   byte* data;
   int len;
-  time_r pt;
+  unsigned long pt;
   short int seq;
 
   ~Frame(){
@@ -23,7 +23,7 @@ private:
   unsigned long start;
   unsigned long stop;
   unsigned long bytesReceived;
-  time_t lastArrivedPacketTimestamp;
+  unsigned long lastArrivedPacketTimestamp;
   Configuration* configuration;
   TimeClock* clock;
   void setup();

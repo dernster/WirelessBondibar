@@ -179,7 +179,8 @@ void ControlServer::obtainServerEndpoint(){
         /* receive initial configuration */
         bool configurationReceived = false;
         bool clockSync = false;
-        while (!configurationReceived || !clockSync){
+        // while (!configurationReceived || !clockSync){
+        while (!configurationReceived){
 
           /* allow connections from AP */
           ap->handleClient();

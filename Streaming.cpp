@@ -95,12 +95,12 @@ void Streaming::bufferFrame(){
   int size = udp.read(dataBuffer, packetSize);
   bytesReceived += size + 8 + 20;
 
-  time_r playbackTime = dataBuffer[0] + (dataBuffer[1]<<8) + (dataBuffer[2]<<16) + (dataBuffer[3]<<24);
+  unsigned long playbackTime = dataBuffer[0] + (dataBuffer[1]<<8) + (dataBuffer[2]<<16) + (dataBuffer[3]<<24);
   byte seq = dataBuffer[4];
 
   /* update server offset statistics */
-  time_r serverTime = playbackTime - 200;
-  clock->addServerOffsetSample(serverTime - lastArrivedPacketTimestamp);
+  unsigned long serverTime = playbackTime - 200;
+  clock->addServerOffsetSample((long)serverTime - (long)lastArrivedPacketTimestamp);
 
   // if ((waitingForSyncFrame) && ((seq % (24*5)) == 0)){
   //   waitingForSyncFrame = false;
@@ -145,9 +145,9 @@ Frame* Streaming::frameToPlay(){
   if (buffer.size() == 0)
     return NULL;
 
-  time_r currentTime = clock->time();
+  unsigned long currentTime = clock->time();
   Frame* frame = buffer[0];
-  time_r packetTime = frame->pt;
+  unsigned long packetTime = frame->pt;
 
   if (abs(currentTime - packetTime) <= 1){
     times++;

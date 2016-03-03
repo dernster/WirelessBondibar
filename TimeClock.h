@@ -17,25 +17,27 @@ public:
 
   long correction;
 
-  time_t minimumOffset = 2147483647;
+  unsigned long minimumOffset = 2147483647;
   int multiplier = 1;
-  time_t increment = 0;
+  int increment = 0;
   bool firstTime = true;
-  void addServerOffsetSample(time_t serverOffset){
-    time_t currentTime = time();
+  void addServerOffsetSample(long serverOffset){
+    unsigned long rawtime = rawTime();
+    unsigned long currentTime = rawtime + correction;
 
     if (!firstTime && (currentTime >= multiplier*EXPIRATION_PERIOD)){
       multiplier++;
-      minimumOffset = abs(correction)  + (long)pow(2,increment);
+      minimumOffset = 2147483647;//abs(correction)  + (long)pow(2,increment);
       Serial.printf("Expiration -> minOff %i\n", minimumOffset);
-      increment++;
+      // increment++;
     }
 
-    if (abs(serverOffset) < minimumOffset){
-      Serial.printf("Setting offset %i\n", serverOffset);
-      minimumOffset = abs(serverOffset);
+    if (((unsigned long)abs(serverOffset)) < minimumOffset){
+      Serial.printf("Setting offset %i; rawTime=%i; time=%i\n", serverOffset, rawtime, currentTime);
+      minimumOffset = (unsigned long)abs(serverOffset);
       correction = serverOffset;
       increment = 0;
+      // firstTime = false;
     }
 
     if (firstTime) {
@@ -48,11 +50,14 @@ public:
     correction = 0;
   }
 
-  time_r time(){
-    return ((time_r)millis()) + correction;
+  unsigned long time(){
+    bool isPositive = correction >= 0;
+    unsigned long corr = (unsigned long) abs(correction);
+
+    return (unsigned long)(isPositive ? (millis() + corr) : (millis() - corr));
   }
 
-  time_r rawTime(){
+  unsigned long rawTime(){
     return millis();
   }
 
