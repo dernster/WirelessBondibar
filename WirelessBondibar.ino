@@ -40,6 +40,7 @@ struct Modules{
 
   void reset(){
     streaming->udp.stop();
+    clock->reset();
     bondibar->turnOffLights();
     configuration->notifyObservers();
   }
