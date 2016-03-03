@@ -7,13 +7,21 @@
 class TimeClock{
 SINGLETON_H(TimeClock)
 public:
+  void reset(){
+    minimumOffset = 2147483647;
+    multiplier = 1;
+    increment = 0;
+    firstTime = true;
+    correction = 0;
+  }
+
   long correction;
 
   time_t minimumOffset = 2147483647;
   int multiplier = 1;
   time_t increment = 0;
+  bool firstTime = true;
   void addServerOffsetSample(time_t serverOffset){
-    static bool firstTime = true;
     time_t currentTime = time();
 
     if (!firstTime && (currentTime >= multiplier*EXPIRATION_PERIOD)){
