@@ -77,7 +77,10 @@ SenderoControlHeader ControlServer::processCommand(){
 
   if (header.requestClockFlag){
 
-    time_r currentTime = clock->time();
+    /* we should review the first sync. If the offset is smaller than the
+       calculated with the streaming packets, we could be in trouble.
+       Because this first sync has the huge error of RTT */
+    time_r currentTime = clock->rawTime();
 
     byte time[4];
     writeBuffer<time_r>(time,currentTime);
@@ -176,7 +179,8 @@ void ControlServer::obtainServerEndpoint(){
         /* receive initial configuration */
         bool configurationReceived = false;
         bool clockSync = false;
-        while (!configurationReceived || !clockSync){
+        // while (!configurationReceived || !clockSync){
+        while (!configurationReceived){
 
           /* allow connections from AP */
           ap->handleClient();
