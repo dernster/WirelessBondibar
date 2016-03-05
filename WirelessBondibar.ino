@@ -26,7 +26,8 @@ struct Modules{
 
     /* create modules */
     configuration = singleton(Configuration);
-    configuration->Wifi->ssid = "G2_6031";
+    configuration->Wifi->ssid = "LarroBrun";
+    configuration->Wifi->password = "27067243LB";
 //    bondibar = singleton(Bondibar);
     ap = singleton(APServer);
     wifiManager = singleton(WifiManager);
@@ -39,27 +40,27 @@ struct Modules{
     streaming->udp.stop();
     configuration->notifyObservers();
   }
-  
+
   Configuration* configuration;
   APServer* ap;
   WifiManager* wifiManager;
   Streaming* streaming;
   ControlServer* controlServer;
   Bondibar* bondibar;
-  TimeClock* clock; 
+  TimeClock* clock;
 };
 
 Modules* modules;
 Frame* playFrame;
 
 void setup() {
-  
+
   Serial.begin(9600);
   while (!Serial) {}
 
   pinMode(NOTIFY_PIN,OUTPUT);
   digitalWrite(NOTIFY_PIN,LOW);
-  
+
   // configure LED
   pinMode(LED,OUTPUT);
   digitalWrite(LED,HIGH);
@@ -72,19 +73,19 @@ void setup() {
   hostName[str.length()] = '\0';
   wifi_station_set_hostname(hostName);
   delete[] hostName;
-  
+
   WiFi.disconnect();
-  WiFi.mode(WIFI_OFF);  
+  WiFi.mode(WIFI_OFF);
   delay(500);
-    
+
 //  Serial.setDebugOutput(true);
   modules = new Modules();
 }
 //-------------------------------------------------
 
 
-byte packet[] = {0,0,0,0,0,0,255,255,255}; 
-unsigned short seq = 0;
+byte packet[] = {0,0,0,0,0,255,255,255};
+byte seq = 0;
 WiFiUDP udp;
 
 time_r lastPacketTime = 0;
@@ -107,41 +108,38 @@ void loop() {
   movePin(time);
 
   if ((time - lastPacketTime) >= 42){
-    
+
     lastPacketTime = time;
     seq++;
-  
-    if ((seq % 100) == 0) {
-      packet[8] = 255 - packet[8];
+
+    if ((seq % 24) == 0) {
       packet[7] = 255 - packet[7];
       packet[6] = 255 - packet[6];
+      packet[5] = 255 - packet[5];
     }
-    time_r pt = time + 240;
+    time_r pt = time + 200;
     packet[0] = pt & 0xFF;
     packet[1] = (pt >> 8 ) & 0xFF;
     packet[2] = (pt >> 16) & 0xFF;
     packet[3] = (pt >> 24) & 0xFF;
     packet[4] = seq & 0xFF;
-    packet[5] = (seq >> 8) & 0xFF;
 
-    if (random(100) < 20){
-      // simulate packet delay
-      LOOP_UNTIL(10 + random(100)){
-        time_r time = modules->clock->time();
-        movePin(time);
-      }
-    }
-    
-  
+    // if (random(100) < 20){
+    //   // simulate packet delay
+    //   LOOP_UNTIL(10 + random(100)){
+    //     time_r time = modules->clock->time();
+    //     movePin(time);
+    //   }
+    // }
+
+
       // send broadcast packet asking IP and Port of server
     IPAddress ip = WiFi.localIP();
     ip[3] = 255;
     int res = udp.beginPacket(ip,modules->configuration->Streaming->port);
-    udp.write(packet,9);
+    udp.write(packet,8);
     udp.endPacket();
 
   }
- 
+
 }
-
-
