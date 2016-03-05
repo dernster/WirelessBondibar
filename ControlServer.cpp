@@ -80,10 +80,10 @@ SenderoControlHeader ControlServer::processCommand(){
     /* we should review the first sync. If the offset is smaller than the
        calculated with the streaming packets, we could be in trouble.
        Because this first sync has the huge error of RTT */
-    time_r currentTime = clock->rawTime();
+    unsigned long currentTime = clock->rawTime();
 
     byte time[4];
-    writeBuffer<time_r>(time,currentTime);
+    writeBuffer<unsigned long>(time,currentTime);
 
     client.write((uint8_t*)&header,header.size());
     client.write((uint8_t*)&time,sizeof(time));

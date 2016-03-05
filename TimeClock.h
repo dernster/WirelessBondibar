@@ -21,15 +21,21 @@ public:
   int multiplier = 1;
   int increment = 0;
   bool firstTime = true;
+
   void addServerOffsetSample(long serverOffset){
     unsigned long rawtime = rawTime();
     unsigned long currentTime = rawtime + correction;
 
-    if (!firstTime && (currentTime >= multiplier*EXPIRATION_PERIOD)){
-      multiplier++;
-      minimumOffset = 2147483647;//abs(correction)  + (long)pow(2,increment);
-      Serial.printf("Expiration -> minOff %i\n", minimumOffset);
-      // increment++;
+    if (!firstTime) {
+      if (currentTime >= multiplier*EXPIRATION_PERIOD) {
+        multiplier++;
+        minimumOffset = 2147483647;//(unsigned long)(abs(correction) + pow(2,increment));
+        Serial.printf("Expiration -> minOff %i\n", minimumOffset);
+        increment++;
+      }
+    } else {
+      firstTime = false;
+      multiplier = ((double)time()/(double)EXPIRATION_PERIOD) + 1;
     }
 
     if (((unsigned long)abs(serverOffset)) < minimumOffset){
@@ -37,12 +43,6 @@ public:
       minimumOffset = (unsigned long)abs(serverOffset);
       correction = serverOffset;
       increment = 0;
-      // firstTime = false;
-    }
-
-    if (firstTime) {
-      firstTime = false;
-      multiplier = ((double)time()/(double)EXPIRATION_PERIOD) + 1;
     }
   }
 

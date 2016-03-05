@@ -39,4 +39,4 @@ void connectToWifi();
 vector<String> splitString(String string, char delimiter);
 Dictionary parseParameters(String params);
 byte* copyBuffer(byte* src,int len);
-bool msIsMultiple(time_r time, time_r multiple);
+bool msIsMultiple(unsigned long time, unsigned long multiple);

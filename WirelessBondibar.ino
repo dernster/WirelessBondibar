@@ -90,7 +90,7 @@ void setup() {
 void loop() {
 
   // move pin in specific times
-  time_r time = modules->clock->time();
+  unsigned long time = modules->clock->time();
   if (msIsMultiple(time,1000)){
     digitalWrite(NOTIFY_PIN,HIGH);
     digitalWrite(NOTIFY_PIN,LOW);

@@ -33,10 +33,10 @@ bool Streaming::frame(){
        Later on, the offset with server is calculated using this arrival timestamp. */
     lastArrivedPacketTimestamp = clock->rawTime();
 
-    if(udp.remoteIP().toString() != configuration->Streaming->serverIP){
-      udp.flush();
-      return false;
-    }
+    // if(udp.remoteIP().toString() != configuration->Streaming->serverIP){
+    //   udp.flush();
+    //   return false;
+    // }
     if (packetIsThere != packetSize){
       udp.flush();
       Serial.printf("Wrong size of streaming packet! %i\n",packetIsThere);
@@ -100,7 +100,7 @@ void Streaming::bufferFrame(){
 
   /* update server offset statistics */
   unsigned long serverTime = playbackTime - 200;
-  clock->addServerOffsetSample((long)serverTime - (long)lastArrivedPacketTimestamp);
+  clock->addServerOffsetSample((long)(serverTime - lastArrivedPacketTimestamp));
 
   // if ((waitingForSyncFrame) && ((seq % (24*5)) == 0)){
   //   waitingForSyncFrame = false;
@@ -149,7 +149,7 @@ Frame* Streaming::frameToPlay(){
   Frame* frame = buffer[0];
   unsigned long packetTime = frame->pt;
 
-  if (abs(currentTime - packetTime) <= 1){
+  if (abs((long)(currentTime - packetTime)) <= 1){
     times++;
     buffer.erase(buffer.begin());
     updateBufferStat();
