@@ -9,7 +9,7 @@ public:
   byte* data;
   int len;
   unsigned long pt;
-  short int seq;
+  byte seq;
 
   ~Frame(){
     if (data)

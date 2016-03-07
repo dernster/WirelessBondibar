@@ -40,7 +40,7 @@ struct Modules{
 
   void reset(){
     streaming->udp.stop();
-    clock->reset();
+    clock->setup();
     bondibar->turnOffLights();
     configuration->notifyObservers();
   }
@@ -59,8 +59,14 @@ Frame* playFrame;
 
 void setup() {
 
+  /* set CPU frequency */
+  bool setFrequencyOK = system_update_cpu_freq(160);
+
   Serial.begin(9600);
   while (!Serial) {}
+
+  Serial.printf("Set frequency at 160MHz -> ");
+  setFrequencyOK ? Serial.println("SUCCESS!") : Serial.println("ERROR");
 
   pinMode(NOTIFY_PIN,OUTPUT);
   digitalWrite(NOTIFY_PIN, LOW);
@@ -78,22 +84,23 @@ void setup() {
   wifi_station_set_hostname(hostName);
   delete[] hostName;
 
-  WiFi.disconnect();
-  WiFi.mode(WIFI_OFF);
-  delay(500);
+  // WiFi.disconnect();
+  WiFi.mode(WIFI_STA);
+  // delay(500);
 
   Serial.setDebugOutput(true);
   modules = new Modules();
 }
 //-------------------------------------------------
 
+bool value = true;
+
 void loop() {
 
   // move pin in specific times
   unsigned long time = modules->clock->time();
   if (msIsMultiple(time,1000)){
-    digitalWrite(NOTIFY_PIN,HIGH);
-    digitalWrite(NOTIFY_PIN,LOW);
+    digitalWrite(NOTIFY_PIN,value = !value);
     // Serial.println("moviendo pata!");
   }
 

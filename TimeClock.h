@@ -7,7 +7,7 @@
 class TimeClock{
 SINGLETON_H(TimeClock)
 public:
-  void reset(){
+  void setup(){
     minimumOffset = 2147483647;
     multiplier = 1;
     increment = 0;
@@ -18,13 +18,13 @@ public:
   long correction;
 
   unsigned long minimumOffset = 2147483647;
-  int multiplier = 1;
+  unsigned long multiplier = 1;
   int increment = 0;
   bool firstTime = true;
 
   void addServerOffsetSample(long serverOffset){
     unsigned long rawtime = rawTime();
-    unsigned long currentTime = rawtime + correction;
+    unsigned long currentTime = time();
 
     if (!firstTime) {
       if (currentTime >= multiplier*EXPIRATION_PERIOD) {
@@ -34,12 +34,13 @@ public:
         increment++;
       }
     } else {
+      correction = serverOffset;
       firstTime = false;
       multiplier = ((double)time()/(double)EXPIRATION_PERIOD) + 1;
     }
 
     if (((unsigned long)abs(serverOffset)) < minimumOffset){
-      Serial.printf("Setting offset %i; rawTime=%i; time=%i\n", serverOffset, rawtime, currentTime);
+      Serial.printf("Setting offset %i; rawTime=%i; time=%i\n", serverOffset, rawtime, time());
       minimumOffset = (unsigned long)abs(serverOffset);
       correction = serverOffset;
       increment = 0;
@@ -47,7 +48,7 @@ public:
   }
 
   TimeClock(){
-    correction = 0;
+    setup();
   }
 
   unsigned long time(){
