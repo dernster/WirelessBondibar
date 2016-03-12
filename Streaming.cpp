@@ -119,7 +119,7 @@ void Streaming::bufferFrame(){
   // if (waitingForSyncFrame)
   //   return;
 
-  int offset = 5 + configuration->Device->firstPixel*3;
+  int offset = 6 + configuration->Device->firstPixel*3;
   frame->data = copyBuffer(dataBuffer + offset, frame->len);
 
   totalPackets++;
