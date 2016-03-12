@@ -108,7 +108,7 @@ SenderoControlHeader ControlServer::processCommand(){
     byte offsetBytes[4];
     client.readBytes((byte*)offsetBytes,4);
     long offset = readBuffer<long>(offsetBytes);
-    clock->addServerOffsetSample(offset);
+    clock->addServerOffsetSample(offset, false);
   }
 
 
@@ -172,7 +172,7 @@ void ControlServer::obtainServerEndpoint(){
       ap->handleClient();
       if (client = server->available()){
         configuration->Streaming->serverIP = client.remoteIP().toString();
-        Serial.println("got client!");
+        Serial.printf("got client!, %s\n", configuration->Streaming->serverIP.c_str());
 
         Serial.println("waiting for configurations and clockSync...");
 

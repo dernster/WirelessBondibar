@@ -15,7 +15,7 @@ void Streaming::setup(){
   bytesReceived = 0;
   lastArrivedPacketTimestamp = 0;
   udp.begin(configuration->Streaming->port);
-  packetSize = configuration->Global->pixelsQty*3 + 5; /* 6 = timestamp + seqNumber */
+  packetSize = configuration->Global->pixelsQty*3 + 6; /* 6 = timestamp + seqNumber + flags */
   if (dataBuffer){
     delete [] dataBuffer;
   }
@@ -33,10 +33,11 @@ bool Streaming::frame(){
        Later on, the offset with server is calculated using this arrival timestamp. */
     lastArrivedPacketTimestamp = clock->rawTime();
 
-    // if(udp.remoteIP().toString() != configuration->Streaming->serverIP){
-    //   udp.flush();
-    //   return false;
-    // }
+    if(udp.remoteIP().toString() != configuration->Streaming->serverIP){
+      udp.flush();
+      // Serial.printf("Wrong IP! %s, %s\n", udp.remoteIP().toString().c_str(), configuration->Streaming->serverIP.c_str());
+      return false;
+    }
     if (packetIsThere != packetSize){
       udp.flush();
       Serial.printf("Wrong size of streaming packet! %i\n",packetIsThere);
@@ -97,10 +98,19 @@ void Streaming::bufferFrame(){
 
   unsigned long playbackTime = dataBuffer[0] + (dataBuffer[1]<<8) + (dataBuffer[2]<<16) + (dataBuffer[3]<<24);
   byte seq = dataBuffer[4];
+  byte flags = dataBuffer[5];
 
   /* update server offset statistics */
+  Frame* frame = new Frame();
+  frame->pt = playbackTime;
+  frame->seq = seq;
+  frame->expClkSync = (flags & 0x01 == 0x01);
+  frame->len = configuration->Device->managedPixelsQty*3;
+
   unsigned long serverTime = playbackTime - 200;
-  clock->addServerOffsetSample((long)(serverTime - lastArrivedPacketTimestamp));
+
+  // Serial.printf("This is the flags mask: %i and the boolean: %i\n", flags, (flags & 0x01 == 0x01));
+  clock->addServerOffsetSample((long)(serverTime - lastArrivedPacketTimestamp), frame->expClkSync);
 
   // if ((waitingForSyncFrame) && ((seq % (24*5)) == 0)){
   //   waitingForSyncFrame = false;
@@ -109,10 +119,6 @@ void Streaming::bufferFrame(){
   // if (waitingForSyncFrame)
   //   return;
 
-  Frame* frame = new Frame();
-  frame->pt = playbackTime;
-  frame->seq = seq;
-  frame->len = configuration->Device->managedPixelsQty*3;
   int offset = 5 + configuration->Device->firstPixel*3;
   frame->data = copyBuffer(dataBuffer + offset, frame->len);
 
@@ -154,7 +160,7 @@ Frame* Streaming::frameToPlay(){
     buffer.erase(buffer.begin());
     updateBufferStat();
   }else if(currentTime >= packetTime + 1){
-    Serial.println("Frame delayed!!!!!");
+    Serial.println("Frame delayed!!");
     times++;
     delayedPackets++;
     buffer.erase(buffer.begin());

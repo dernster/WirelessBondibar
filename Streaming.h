@@ -10,6 +10,7 @@ public:
   int len;
   unsigned long pt;
   byte seq;
+  bool expClkSync;
 
   ~Frame(){
     if (data)
