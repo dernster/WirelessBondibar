@@ -23,6 +23,7 @@ extern "C" {
   #include "cont.h"
 }
 
+bool firstTime = true;
 
 struct Modules{
 
@@ -30,6 +31,8 @@ struct Modules{
 
     /* create modules */
     configuration = singleton(Configuration);
+    configuration->Wifi->ssid = "/dev/null";
+    configuration->Wifi->password = "$sudo\\s!!";
     bondibar = singleton(Bondibar);
     ap = singleton(APServer);
     wifiManager = singleton(WifiManager);
@@ -39,6 +42,7 @@ struct Modules{
   }
 
   void reset(){
+    firstTime = true;
     streaming->udp.stop();
     clock->setup();
     bondibar->turnOffLights();
@@ -89,13 +93,28 @@ void setup() {
   // delay(500);
 
   Serial.setDebugOutput(true);
+
+  delay(500);
   modules = new Modules();
 }
 //-------------------------------------------------
 
 bool value = true;
-
 void loop() {
+
+  if (firstTime){
+    firstTime = false;
+    modules->streaming->udp.begin(modules->configuration->Streaming->port);
+    int count = 0;
+    while(true){
+      if (modules->streaming->udp.parsePacket()){
+        modules->streaming->udp.flush();
+        count++;
+      }
+      if (count == 24*7)
+        break;
+    }
+  }
 
   // move pin in specific times
   unsigned long time = modules->clock->time();

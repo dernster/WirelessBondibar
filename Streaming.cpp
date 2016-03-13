@@ -14,7 +14,7 @@ Streaming::Streaming(){
 void Streaming::setup(){
   bytesReceived = 0;
   lastArrivedPacketTimestamp = 0;
-  udp.begin(configuration->Streaming->port);
+  udp.stop();
   packetSize = configuration->Global->pixelsQty*3 + 6; /* 6 = timestamp + seqNumber + flags */
   if (dataBuffer){
     delete [] dataBuffer;
@@ -25,6 +25,7 @@ void Streaming::setup(){
 }
 
 bool Streaming::frame(){
+  static unsigned long last = 0;
   int packetIsThere = udp.parsePacket();
 
   if (packetIsThere){
@@ -32,6 +33,8 @@ bool Streaming::frame(){
     /* Every packet gets timestamped instantly when arrives.
        Later on, the offset with server is calculated using this arrival timestamp. */
     lastArrivedPacketTimestamp = clock->rawTime();
+    // Serial.printf("lastArrivedPacketTimestamp = %lu, diff = %i\n", lastArrivedPacketTimestamp, lastArrivedPacketTimestamp - last);
+    last = lastArrivedPacketTimestamp;
 
     if(udp.remoteIP().toString() != configuration->Streaming->serverIP){
       udp.flush();
@@ -110,7 +113,8 @@ void Streaming::bufferFrame(){
   unsigned long serverTime = playbackTime - 200;
 
   // Serial.printf("This is the flags mask: %i and the boolean: %i\n", flags, (flags & 0x01 == 0x01));
-  clock->addServerOffsetSample((long)(serverTime - lastArrivedPacketTimestamp), frame->expClkSync);
+  // Serial.printf("%i\n", (long)(serverTime - lastArrivedPacketTimestamp));
+  clock->addServerOffsetSample((long)(serverTime - lastArrivedPacketTimestamp), frame->expClkSync,serverTime,lastArrivedPacketTimestamp);
 
   // if ((waitingForSyncFrame) && ((seq % (24*5)) == 0)){
   //   waitingForSyncFrame = false;
@@ -124,7 +128,7 @@ void Streaming::bufferFrame(){
 
   totalPackets++;
   if (!firstFrame && (frame->seq != expectedSeq)){
-   Serial.println("Wrong seq number! expected=" + String(expectedSeq) + " got=" + String(frame->seq));
+  //  Serial.println("Wrong seq number! expected=" + String(expectedSeq) + " got=" + String(frame->seq));
     lostPackets++;
     configuration->Stats->packetLossRate = (float)lostPackets/((float)totalPackets);
   }
@@ -160,7 +164,7 @@ Frame* Streaming::frameToPlay(){
     buffer.erase(buffer.begin());
     updateBufferStat();
   }else if(currentTime >= packetTime + 1){
-    Serial.println("Frame delayed!!");
+    // Serial.println("Frame delayed!!");
     times++;
     delayedPackets++;
     buffer.erase(buffer.begin());

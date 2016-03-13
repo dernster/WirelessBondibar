@@ -21,25 +21,27 @@ public:
   int increment = 0;
   bool firstTime = true;
 
-  void addServerOffsetSample(long serverOffset, bool expirationNeeded){
+  void addServerOffsetSample(long serverOffset, bool expirationNeeded, unsigned long serverTime, unsigned long raw){
     static int count = 0;
     unsigned long rawtime = rawTime();
     unsigned long currentTime = time();
+    bool selected = false;
 
-    if (expirationNeeded) {
-      if (!count) {
-        count = 1;
-        Serial.printf("Expiration needed at: %lu\n", currentTime);
-      }
-      minimumOffset = 2147483647;
-    } else {
-      count = 0;
-    }
+    // if (expirationNeeded) {
+    //   if (!count) {
+    //     count = 1;
+    //     Serial.printf("Expiration needed at: %lu\n", currentTime);
+    //   }
+    //   minimumOffset = 2147483647;
+    // } else {
+    //   count = 0;
+    // }
 
     if (!firstTime) {
       if (currentTime >= multiplier*EXPIRATION_PERIOD) {
         multiplier++;
-        minimumOffset = expirationNeeded ? 2147483647 : ((unsigned long)(abs(correction) + pow(2,increment)));
+        // minimumOffset = expirationNeeded ? 2147483647 : ((unsigned long)(abs(correction) + pow(2,increment)));
+        minimumOffset = ((unsigned long)(abs(correction) + pow(2,increment)));
         Serial.printf("Expiration -> minOff %i\n", minimumOffset);
         increment++;
       }
@@ -47,14 +49,18 @@ public:
       correction = serverOffset;
       firstTime = false;
       multiplier = ((double)time()/(double)EXPIRATION_PERIOD) + 1;
+      Serial.println("serverOffset\tselected\tminimumOffset\tserverTime\trawTime");
     }
 
-    if (((unsigned long)abs(serverOffset)) < minimumOffset){
+    if (((unsigned long)abs(serverOffset)) <= minimumOffset){
       // Serial.printf("Setting offset %i\n", serverOffset);
       minimumOffset = (unsigned long)abs(serverOffset);
       correction = serverOffset;
       increment = 0;
+      selected = true;
     }
+
+    Serial.printf("%i\t%i\t%lu\t%lu\t%lu\n", serverOffset, selected,minimumOffset, serverTime, raw);
 
     // Serial.printf("serverOffset=%i\tminimumOffset=%i\tcorrection=%i\tmultiplier=%lu\ttime=%lu\n================\n",serverOffset,minimumOffset, correction, multiplier, time());
   }
