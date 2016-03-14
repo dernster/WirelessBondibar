@@ -3,6 +3,8 @@
 
 SINGLETON_CPP(Streaming)
 
+#define STREAMING_HEADER_SIZE  (6)
+
 Streaming::Streaming(){
   configuration = singleton(Configuration);
   clock = singleton(TimeClock);
@@ -14,8 +16,8 @@ Streaming::Streaming(){
 void Streaming::setup(){
   bytesReceived = 0;
   lastArrivedPacketTimestamp = 0;
-  udp.stop();
-  packetSize = configuration->Global->pixelsQty*3 + 6; /* 6 = timestamp + seqNumber + flags */
+  udp.begin(configuration->Streaming->port);
+  packetSize = configuration->Global->pixelsQty*3 + STREAMING_HEADER_SIZE; /* 6 = timestamp + seqNumber + flags */
   if (dataBuffer){
     delete [] dataBuffer;
   }
@@ -99,36 +101,40 @@ void Streaming::bufferFrame(){
   int size = udp.read(dataBuffer, packetSize);
   bytesReceived += size + 8 + 20;
 
+  // unsigned long udpTime = dataBuffer[0] + (dataBuffer[1]<<8) + (dataBuffer[2]<<16) + (dataBuffer[3]<<24);
   unsigned long playbackTime = dataBuffer[0] + (dataBuffer[1]<<8) + (dataBuffer[2]<<16) + (dataBuffer[3]<<24);
   byte seq = dataBuffer[4];
-  byte flags = dataBuffer[5];
+  bool expClkSync = (dataBuffer[5] & 0x01 == 0x01);
 
   /* update server offset statistics */
-  Frame* frame = new Frame();
-  frame->pt = playbackTime;
-  frame->seq = seq;
-  frame->expClkSync = (flags & 0x01 == 0x01);
-  frame->len = configuration->Device->managedPixelsQty*3;
-
   unsigned long serverTime = playbackTime - 200;
 
   // Serial.printf("This is the flags mask: %i and the boolean: %i\n", flags, (flags & 0x01 == 0x01));
   // Serial.printf("%i\n", (long)(serverTime - lastArrivedPacketTimestamp));
-  clock->addServerOffsetSample((long)(serverTime - lastArrivedPacketTimestamp), frame->expClkSync,serverTime,lastArrivedPacketTimestamp);
-
+  bool isValid = clock->addServerOffsetSample((long)(serverTime - lastArrivedPacketTimestamp), expClkSync,serverTime,lastArrivedPacketTimestamp);
+  // clock->addServerOffsetSample((long)(serverTime - udpTime), frame->expClkSync,serverTime,udpTime);
   // if ((waitingForSyncFrame) && ((seq % (24*5)) == 0)){
   //   waitingForSyncFrame = false;
   // }
   //
   // if (waitingForSyncFrame)
   //   return;
+  if (!isValid)
+    return;
 
-  int offset = 6 + configuration->Device->firstPixel*3;
+
+  Frame* frame = new Frame();
+  frame->pt = playbackTime;
+  frame->seq = seq;
+  frame->expClkSync = expClkSync;
+  frame->len = configuration->Device->managedPixelsQty*3;
+
+  int offset = STREAMING_HEADER_SIZE + configuration->Device->firstPixel*3;
   frame->data = copyBuffer(dataBuffer + offset, frame->len);
 
   totalPackets++;
   if (!firstFrame && (frame->seq != expectedSeq)){
-  //  Serial.println("Wrong seq number! expected=" + String(expectedSeq) + " got=" + String(frame->seq));
+   Serial.println("Wrong seq number! expected=" + String(expectedSeq) + " got=" + String(frame->seq));
     lostPackets++;
     configuration->Stats->packetLossRate = (float)lostPackets/((float)totalPackets);
   }
