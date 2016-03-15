@@ -1,13 +1,15 @@
 #pragma once
 #include "utils.h"
 #include "Arduino.h"
+#include "Configuration.h"
 
-#define EXPIRATION_PERIOD (60*1000)
+#define EXPIRATION_PERIOD (configuration->ClockSync->expirationPeriod)
 #define CALIBRATE_PERIOD (24*6)
 
-class TimeClock{
+class TimeClock: public ConfigurationObserver{
 SINGLETON_H(TimeClock)
 public:
+  Configuration* configuration;
   void setup(){
     minimumOffset = 2147483647;
     multiplier = 1;
@@ -19,6 +21,8 @@ public:
     lastMean = 0;
     successCount = 0;
     isCalibrated = false;
+    configuration = singleton(Configuration);
+
   }
 
   bool isCalibrated;
@@ -56,7 +60,7 @@ public:
     if (successCount >= CALIBRATE_PERIOD)
       return false;
 
-    bool success = abs(cumulativeMean - lastMean) < 0.5;
+    bool success = abs(cumulativeMean - lastMean) < 0.2;
     if (success){
       successCount++;
     }else{
@@ -65,7 +69,7 @@ public:
     return (successCount <= CALIBRATE_PERIOD);
   }
 
-  bool addServerOffsetSample(long serverOffset, bool expirationNeeded, unsigned long serverTime, unsigned long raw){
+  bool addServerOffsetSample(long serverOffset, bool expirationNeeded, unsigned long serverTime, unsigned long raw, byte seq){
     static int count = 0;
     unsigned long rawtime = rawTime();
     unsigned long currentTime = time();
@@ -76,15 +80,15 @@ public:
     double mean = updateMean(serverOffset);
     if (inCalibratePeriod()){
       if (hasEverExpired){
-        // Serial.printf("%i\t%i\t%lu\t%lu\t%lu\t%s\n", serverOffset, selected,minimumOffset, serverTime, raw, String(mean).c_str());
+        Serial.printf("%i\t%i\t%lu\t%lu\t%lu\t%s\t%i\n", serverOffset, selected,minimumOffset, serverTime, raw, String(mean).c_str(),seq);
         return true;
       } else {
         return false;
       }
     }
     /* remove outlier */
-    if (abs(serverOffset - mean) > 17){
-      // Serial.printf("%i\t%i\t%lu\t%lu\t%lu\t%s\n", serverOffset, selected,minimumOffset, serverTime, raw, String(mean).c_str());
+    if (abs(serverOffset - mean) > configuration->ClockSync->offsetSigma){
+      Serial.printf("%i\t%i\t%lu\t%lu\t%lu\t%s\t%i\n", serverOffset, selected,minimumOffset, serverTime, raw, String(mean).c_str(),seq);
       return true;
     }
 
@@ -103,7 +107,7 @@ public:
         multiplier++;
         // minimumOffset = expirationNeeded ? 2147483647 : ((unsigned long)(abs(correction) + pow(2,increment)));
         minimumOffset = ((unsigned long)(abs(correction) + pow(2,increment)));
-        Serial.printf("Expiration -> minOff %i\n", minimumOffset);
+        // Serial.printf("Expiration -> minOff %i\n", minimumOffset);
         increment++;
         resetMeanCalibrate();
         hasEverExpired = true;
@@ -112,11 +116,11 @@ public:
       correction = serverOffset;
       firstTime = false;
       multiplier = ((double)time()/(double)EXPIRATION_PERIOD) + 1;
-      // Serial.println("serverOffset\tselected\tminimumOffset\tserverTime\trawTime\tmean");
+      Serial.println("serverOffset\tselected\tminimumOffset\tserverTime\trawTime\tmean\tseq");
     }
 
     if (((unsigned long)abs(serverOffset)) <= minimumOffset){
-      Serial.printf("Setting offset %i\n", serverOffset);
+      // Serial.printf("Setting offset %i\n", serverOffset);
       isCalibrated = true;
       minimumOffset = (unsigned long)abs(serverOffset);
       correction = serverOffset;
@@ -124,7 +128,7 @@ public:
       selected = true;
     }
 
-    // Serial.printf("%i\t%i\t%lu\t%lu\t%lu\t%s\n", serverOffset, selected,minimumOffset, serverTime, raw, String(mean).c_str());
+    Serial.printf("%i\t%i\t%lu\t%lu\t%lu\t%s\t%i\n", serverOffset, selected,minimumOffset, serverTime, raw, String(mean).c_str(),seq);
     return true;
     // Serial.printf("serverOffset=%i\tminimumOffset=%i\tcorrection=%i\tmultiplier=%lu\ttime=%lu\n================\n",serverOffset,minimumOffset, correction, multiplier, time());
   }
@@ -136,20 +140,17 @@ public:
   unsigned long time(){
     bool isPositive = correction >= 0;
     unsigned long corr = (unsigned long) abs(correction);
-    unsigned long milis = millis();
-    // if ((!isPositive) && (milis < corr)){
-    //   Serial.println("ERROR INSANO LOCO!!!!!!!!!!!!!!!!!!!!!!");
-    //   while(true){};
-    // }
-    // if ((isPositive) && (milis + corr < milis)){
-    //   Serial.println("ERROR INSANO LOCO 2!!!!!!!!!!!!!!!!!!!!!!");
-    //   while(true){};
-    // }
+    unsigned long milis = rawTime();
     return (unsigned long)(isPositive ? (milis + corr) : (milis - corr));
   }
 
   unsigned long rawTime(){
-    return millis();
+    return micros() / 1000;
+  }
+
+  void configurationChanged(){
+    Serial.println("TimeClock::configurationChanged()");
+    setup();
   }
 
 };

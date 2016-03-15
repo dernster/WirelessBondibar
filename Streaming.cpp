@@ -29,6 +29,7 @@ void Streaming::setup(){
 bool Streaming::frame(){
   static unsigned long last = 0;
   int packetIsThere = udp.parsePacket();
+  // Serial.println("Llego paquete!");
 
   if (packetIsThere){
 
@@ -107,11 +108,11 @@ void Streaming::bufferFrame(){
   bool expClkSync = (dataBuffer[5] & 0x01 == 0x01);
 
   /* update server offset statistics */
-  unsigned long serverTime = playbackTime - 200;
+  unsigned long serverTime = playbackTime - configuration->Streaming->playbackTimeDelay;
 
   // Serial.printf("This is the flags mask: %i and the boolean: %i\n", flags, (flags & 0x01 == 0x01));
   // Serial.printf("%i\n", (long)(serverTime - lastArrivedPacketTimestamp));
-  bool isValid = clock->addServerOffsetSample((long)(serverTime - lastArrivedPacketTimestamp), expClkSync,serverTime,lastArrivedPacketTimestamp);
+  bool isValid = clock->addServerOffsetSample((long)(serverTime - lastArrivedPacketTimestamp), expClkSync,serverTime,lastArrivedPacketTimestamp,seq);
   // clock->addServerOffsetSample((long)(serverTime - udpTime), frame->expClkSync,serverTime,udpTime);
   // if ((waitingForSyncFrame) && ((seq % (24*5)) == 0)){
   //   waitingForSyncFrame = false;
@@ -134,7 +135,7 @@ void Streaming::bufferFrame(){
 
   totalPackets++;
   if (!firstFrame && (frame->seq != expectedSeq)){
-   Serial.println("Wrong seq number! expected=" + String(expectedSeq) + " got=" + String(frame->seq));
+  //  Serial.println("Wrong seq number! expected=" + String(expectedSeq) + " got=" + String(frame->seq));
     lostPackets++;
     configuration->Stats->packetLossRate = (float)lostPackets/((float)totalPackets);
   }

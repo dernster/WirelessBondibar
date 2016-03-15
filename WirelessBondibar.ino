@@ -31,8 +31,7 @@ struct Modules{
 
     /* create modules */
     configuration = singleton(Configuration);
-    configuration->Wifi->ssid = "/dev/null";
-    configuration->Wifi->password = "$sudo\\s!!";
+    // configuration->Wifi->ssid = "G2_6031";
     bondibar = singleton(Bondibar);
     ap = singleton(APServer);
     wifiManager = singleton(WifiManager);
@@ -65,9 +64,13 @@ void setup() {
 
   /* set CPU frequency */
   bool setFrequencyOK = system_update_cpu_freq(160);
+  bool setPowerSavingOff = wifi_set_sleep_type(NONE_SLEEP_T);
 
   Serial.begin(9600);
   while (!Serial) {}
+
+  Serial.printf("Set wifi power save OFF -> ");
+  setPowerSavingOff ? Serial.println("SUCCESS!") : Serial.println("ERROR");
 
   Serial.printf("Set frequency at 160MHz -> ");
   setFrequencyOK ? Serial.println("SUCCESS!") : Serial.println("ERROR");

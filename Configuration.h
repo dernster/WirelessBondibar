@@ -136,15 +136,7 @@ DefineConfig( Streaming,
     return String(config);
   })
 
-  var( int, smaWindowPacketsQty,
-  {
-    config = value.toInt();
-  },
-  {
-    return String(config);
-  })
-
-  var( int, playbackDelayTime,
+  var( unsigned long, playbackTimeDelay,
   {
     config = value.toInt();
   },
@@ -155,10 +147,36 @@ DefineConfig( Streaming,
   expose(
       port,
       serverIP,
-      smaWindowPacketsQty
+      playbackTimeDelay
   );
 );
 
+
+//-------------Streaming---------------
+
+DefineConfig( ClockSync,
+
+  var( long, offsetSigma,
+  {
+    config = value.toInt();
+  },
+  {
+    return String(config);
+  })
+
+  var( unsigned long, expirationPeriod,
+  {
+    config = value.toInt();
+  },
+  {
+    return String(config);
+  })
+
+  expose(
+      offsetSigma,
+      expirationPeriod
+  );
+);
 
 //-------------Stats---------------
 
@@ -261,6 +279,7 @@ public:
     configs.push_back(Streaming = new _Streaming);
     configs.push_back(Global = new _Global);
     configs.push_back(Stats = new _Stats);
+    configs.push_back(ClockSync = new _ClockSync);
 
     this->Global->pixelsQty = 200; /* not set yet */
     this->ControlServer->packetLength = 200;
@@ -282,6 +301,7 @@ public:
   _Streaming* Streaming;
   _Global* Global;
   _Stats* Stats;
+  _ClockSync* ClockSync;
 
   vector<ConfigurationObserver*> observers;
 
