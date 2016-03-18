@@ -31,7 +31,8 @@ struct Modules{
 
     /* create modules */
     configuration = singleton(Configuration);
-    // configuration->Wifi->ssid = "G2_6031";
+    configuration->Wifi->ssid = "/dev/null";
+    configuration->Wifi->password = "sudosudo";
     bondibar = singleton(Bondibar);
     ap = singleton(APServer);
     wifiManager = singleton(WifiManager);
@@ -105,23 +106,9 @@ void setup() {
 bool value = true;
 void loop() {
 
-  // if (firstTime){
-  //   firstTime = false;
-  //   modules->streaming->
-  //   int count = 0;
-  //   while(true){
-  //     if (modules->streaming->udp.parsePacket()){
-  //       modules->streaming->udp.flush();
-  //       count++;
-  //     }
-  //     if (count == 24*7)
-  //       break;
-  //   }
-  // }
-
   // move pin in specific times
   unsigned long time = modules->clock->time();
-  if (modules->clock->isCalibrated && msIsMultiple(time,1000)){
+  if (modules->clock->wasCalibratedAtLeastOneTime && msIsMultiple(time,1000)){
     digitalWrite(NOTIFY_PIN,value = !value);
     // Serial.println("moviendo pata!");
   }

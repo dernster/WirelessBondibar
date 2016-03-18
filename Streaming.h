@@ -3,20 +3,7 @@
 #include "Configuration.h"
 #include <WiFiUdp.h>
 #include "TimeClock.h"
-
-class Frame{
-public:
-  byte* data;
-  int len;
-  unsigned long pt;
-  byte seq;
-  bool expClkSync;
-
-  ~Frame(){
-    if (data)
-      delete [] data;
-  }
-};
+#include "DataTypes.h"
 
 class Streaming : ConfigurationObserver{
 SINGLETON_H(Streaming)

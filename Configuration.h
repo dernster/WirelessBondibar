@@ -172,9 +172,36 @@ DefineConfig( ClockSync,
     return String(config);
   })
 
+  var( unsigned long, offsetMeanCalibrationConsecutivePackets,
+  {
+    config = value.toInt();
+  },
+  {
+    return String(config);
+  })
+
+  var( float, offsetMeanCalibrationDerivativeThreshold,
+  {
+    config = value.toFloat();
+  },
+  {
+    return String(config);
+  })
+
+  var( unsigned long, firstPacketsIgnoreQty,
+  {
+    config = value.toInt();
+  },
+  {
+    return String(config);
+  })
+
   expose(
       offsetSigma,
-      expirationPeriod
+      expirationPeriod,
+      offsetMeanCalibrationConsecutivePackets,
+      offsetMeanCalibrationDerivativeThreshold,
+      firstPacketsIgnoreQty
   );
 );
 
@@ -282,7 +309,7 @@ public:
     configs.push_back(ClockSync = new _ClockSync);
 
     this->Global->pixelsQty = 200; /* not set yet */
-    this->ControlServer->packetLength = 200;
+    this->ControlServer->packetLength = 400;
     this->ControlServer->keepAliveSeconds = 20;
     this->Stats->packetLossRate = 0;
     this->Device->managedPixelsQty = 8;

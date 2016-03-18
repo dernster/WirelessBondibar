@@ -5,6 +5,8 @@
 #include "Dictionary.h"
 using namespace std;
 
+#define DEBUG(x)  x;
+
 #define time_r long
 
 #define LED 2

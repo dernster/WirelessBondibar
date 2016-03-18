@@ -2,9 +2,13 @@
 #include "utils.h"
 #include "Arduino.h"
 #include "Configuration.h"
+#include "DataTypes.h"
 
 #define EXPIRATION_PERIOD (configuration->ClockSync->expirationPeriod)
-#define CALIBRATE_PERIOD (24*6)
+#define PLAYBACK_TIME_DELAY (configuration->Streaming->playbackTimeDelay)
+#define OFFSET_MEAN_CALIBRATION_CONSECUTIVE_PACKETS (configuration->ClockSync->offsetMeanCalibrationConsecutivePackets)
+#define OFFSET_MEAN_CALIBRATION_DERIVATIVE_THRESHOLD (configuration->ClockSync->offsetMeanCalibrationDerivativeThreshold)
+#define FIRST_PACKETS_IGNORE_QTY (configuration->ClockSync->firstPacketsIgnoreQty)
 
 class TimeClock: public ConfigurationObserver{
 SINGLETON_H(TimeClock)
@@ -16,98 +20,103 @@ public:
     increment = 0;
     firstTime = true;
     correction = 0;
-    cumulativeMean = 0;
-    packets = 0;
-    lastMean = 0;
-    successCount = 0;
-    isCalibrated = false;
+    totalPackets = 0;
+    wasCalibratedAtLeastOneTime = false;
+    resetMeanCalibrate();
     configuration = singleton(Configuration);
 
   }
 
-  bool isCalibrated;
+  bool wasCalibratedAtLeastOneTime;
   long correction;
   unsigned long minimumOffset = 2147483647;
   unsigned long multiplier = 1;
   int increment = 0;
   bool firstTime = true;
+  unsigned int totalPackets;
 
 
-  double lastMean;
-  double cumulativeMean;
+  OffsetSample lastMean;
+  OffsetSample cumulativeMean;
   unsigned long packets;
   int successCount;
-  double updateMean(long offset){
+  unsigned long calibrated = 0;
+  double updateMean(OffsetSample offsetSample){
+    lastMean = cumulativeMean;
     packets++;
     if (packets == 1){
-      cumulativeMean = offset;
+      cumulativeMean = offsetSample;
     }else{
       double i = packets;
-      double x = offset;
-      cumulativeMean = ((i-1)*cumulativeMean)/i + x/i;
+      double x = offsetSample.sample;
+      cumulativeMean.sample = ((i-1)*cumulativeMean.sample)/i + x/i;
+      cumulativeMean.timestamp = offsetSample.timestamp;
     }
-    return cumulativeMean;
+    return cumulativeMean.sample;
   }
 
   void resetMeanCalibrate(){
-    lastMean = 0;
+    lastMean.sample = lastMean.timestamp = 0;
+    cumulativeMean.sample = cumulativeMean.timestamp = 0;
     packets = 0;
     successCount = 0;
-    cumulativeMean = 0;
+    calibrated = 0;
   }
 
   bool inCalibratePeriod(){
-    if (successCount >= CALIBRATE_PERIOD)
+    if (successCount >= OFFSET_MEAN_CALIBRATION_CONSECUTIVE_PACKETS)
       return false;
+    if (packets == 1)
+      return true;
 
-    bool success = abs(cumulativeMean - lastMean) < 0.2;
+    double deltaX = cumulativeMean.sample - lastMean.sample;
+    double deltaT = cumulativeMean.timestamp - lastMean.timestamp;
+    bool success = abs(deltaX/deltaT) < OFFSET_MEAN_CALIBRATION_DERIVATIVE_THRESHOLD;
     if (success){
       successCount++;
     }else{
       successCount = 0;
     }
-    return (successCount <= CALIBRATE_PERIOD);
+    return (successCount <= OFFSET_MEAN_CALIBRATION_CONSECUTIVE_PACKETS);
   }
 
-  bool addServerOffsetSample(long serverOffset, bool expirationNeeded, unsigned long serverTime, unsigned long raw, byte seq){
-    static int count = 0;
+  bool updateServerOffset(Frame* frame){
+
+    if (totalPackets < FIRST_PACKETS_IGNORE_QTY){
+      totalPackets++;
+      return false;
+    }
+
+    long serverOffset = (frame->pt -PLAYBACK_TIME_DELAY) - frame->arriveTime;
+    byte seq = frame->seq;
     unsigned long rawtime = rawTime();
     unsigned long currentTime = time();
     static bool hasEverExpired = false;
     bool selected = false;
 
-    lastMean = cumulativeMean;
-    double mean = updateMean(serverOffset);
+    OffsetSample offset(serverOffset,frame->arriveTime);
+    double mean = updateMean(offset);
     if (inCalibratePeriod()){
       if (hasEverExpired){
-        Serial.printf("%i\t%i\t%lu\t%lu\t%lu\t%s\t%i\n", serverOffset, selected,minimumOffset, serverTime, raw, String(mean).c_str(),seq);
+        DEBUG(Serial.printf("%i\t%i\t%lu\t%s\t%i\t%i\n", serverOffset, selected,minimumOffset, String(mean).c_str(),seq, calibrated));
         return true;
       } else {
         return false;
       }
     }
+    calibrated = serverOffset;
     /* remove outlier */
     if (abs(serverOffset - mean) > configuration->ClockSync->offsetSigma){
-      Serial.printf("%i\t%i\t%lu\t%lu\t%lu\t%s\t%i\n", serverOffset, selected,minimumOffset, serverTime, raw, String(mean).c_str(),seq);
-      return true;
+      if (wasCalibratedAtLeastOneTime)
+        DEBUG(Serial.printf("%i\t%i\t%lu\t%s\t%i\t%i\n", serverOffset, selected,minimumOffset, String(mean).c_str(),seq, calibrated));
+      return wasCalibratedAtLeastOneTime;
     }
-
-    // if (expirationNeeded) {
-    //   if (!count) {
-    //     count = 1;
-    //     Serial.printf("Expiration needed at: %lu\n", currentTime);
-    //   }
-    //   minimumOffset = 2147483647;
-    // } else {
-    //   count = 0;
-    // }
 
     if (!firstTime) {
       if (currentTime >= multiplier*EXPIRATION_PERIOD) {
         multiplier++;
-        // minimumOffset = expirationNeeded ? 2147483647 : ((unsigned long)(abs(correction) + pow(2,increment)));
         minimumOffset = ((unsigned long)(abs(correction) + pow(2,increment)));
-        // Serial.printf("Expiration -> minOff %i\n", minimumOffset);
+        DEBUG(Serial.printf("Expiration -> minOff %i\n", minimumOffset));
         increment++;
         resetMeanCalibrate();
         hasEverExpired = true;
@@ -116,21 +125,20 @@ public:
       correction = serverOffset;
       firstTime = false;
       multiplier = ((double)time()/(double)EXPIRATION_PERIOD) + 1;
-      Serial.println("serverOffset\tselected\tminimumOffset\tserverTime\trawTime\tmean\tseq");
+      DEBUG(Serial.println("serverOffset\tselected\tminimumOffset\tmean\tseq\tcalibrated"));
     }
 
     if (((unsigned long)abs(serverOffset)) <= minimumOffset){
-      // Serial.printf("Setting offset %i\n", serverOffset);
-      isCalibrated = true;
+      DEBUG(Serial.printf("Setting offset %i\n", serverOffset));
+      wasCalibratedAtLeastOneTime = true;
       minimumOffset = (unsigned long)abs(serverOffset);
       correction = serverOffset;
       increment = 0;
       selected = true;
     }
 
-    Serial.printf("%i\t%i\t%lu\t%lu\t%lu\t%s\t%i\n", serverOffset, selected,minimumOffset, serverTime, raw, String(mean).c_str(),seq);
+    DEBUG(Serial.printf("%i\t%i\t%lu\t%s\t%i\t%i\n", serverOffset, selected,minimumOffset, String(mean).c_str(),seq, calibrated));
     return true;
-    // Serial.printf("serverOffset=%i\tminimumOffset=%i\tcorrection=%i\tmultiplier=%lu\ttime=%lu\n================\n",serverOffset,minimumOffset, correction, multiplier, time());
   }
 
   TimeClock(){
@@ -145,7 +153,7 @@ public:
   }
 
   unsigned long rawTime(){
-    return micros() / 1000;
+    return millis();
   }
 
   void configurationChanged(){

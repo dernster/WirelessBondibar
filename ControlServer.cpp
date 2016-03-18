@@ -5,6 +5,15 @@
 #include "Streaming.h"
 using namespace std;
 
+extern "C" {
+  #include "ets_sys.h"
+  #include "os_type.h"
+  #include "osapi.h"
+  #include "mem.h"
+  #include "user_interface.h"
+  #include "cont.h"
+}
+
 SINGLETON_CPP(ControlServer)
 
 ControlServer::ControlServer(){
@@ -108,7 +117,7 @@ SenderoControlHeader ControlServer::processCommand(){
     byte offsetBytes[4];
     client.readBytes((byte*)offsetBytes,4);
     long offset = readBuffer<long>(offsetBytes);
-    clock->addServerOffsetSample(offset, false,0,0,0);
+    // clock->addServerOffsetSample(offset, false,0,0,0);
   }
 
 
@@ -118,8 +127,10 @@ SenderoControlHeader ControlServer::processCommand(){
     int i = 0;
     while(true){
       byte b = client.read();
-      if (b == -1)
+      if (b == -1){
+        delay(100);
         continue;
+      }
 
       buffer[i] = (char)b;
 
@@ -129,12 +140,13 @@ SenderoControlHeader ControlServer::processCommand(){
       i++;
     }
 
+    Serial.println("Sali del while");
+
     Serial.println(buffer);
 
     String configs = String(buffer);
     Dictionary dict = parseParameters(configs);
     configuration->setValues(dict,false);
-
     Serial.println(String("Configs setted! ") + configs);
   }
 
