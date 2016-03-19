@@ -108,7 +108,7 @@ void loop() {
 
   // move pin in specific times
   unsigned long time = modules->clock->time();
-  if (modules->clock->wasCalibratedAtLeastOneTime && msIsMultiple(time,1000)){
+  if (modules->clock->isSynced() && msIsMultiple(time,1000)){
     digitalWrite(NOTIFY_PIN,value = !value);
     // Serial.println("moviendo pata!");
   }

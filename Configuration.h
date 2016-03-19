@@ -152,7 +152,7 @@ DefineConfig( Streaming,
 );
 
 
-//-------------Streaming---------------
+//-------------ClockSync---------------
 
 DefineConfig( ClockSync,
 

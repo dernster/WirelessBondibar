@@ -1,31 +1,43 @@
 #pragma once
+#include "Configuration.h"
 
-class Frame{
-public:
-  byte* data;
-  int len;
-  unsigned long pt;
-  byte seq;
-  bool expClkSync;
-  unsigned long arriveTime;
-
-  ~Frame(){
-    if (data)
-      delete [] data;
-  }
-};
-
-struct OffsetSample {
-  double sample;
+template <typename T>
+struct Sample{
+  T sample;
   unsigned long timestamp;
 
-  OffsetSample(){
+  Sample(){
     sample = 0;
     timestamp = 0;
   }
 
-  OffsetSample(const double & sample, const unsigned long & timestamp){
+  Sample(const T & sample, const unsigned long & timestamp){
     this->sample = sample;
     this->timestamp = timestamp;
+  }
+};
+
+class Frame{
+public:
+  Configuration* conf;
+  byte* data;
+  int len;
+  unsigned long pt;
+  byte seq;
+  byte flags;
+  unsigned long arriveTime;
+
+  Frame(){
+    conf = singleton(Configuration);
+  }
+
+  Sample<long> getOffsetAgainstServerTime(){
+    long sample = (pt - conf->Streaming->playbackTimeDelay) - arriveTime;
+    return Sample<long>(sample, arriveTime);
+  }
+
+  ~Frame(){
+    if (data)
+      delete [] data;
   }
 };

@@ -27,21 +27,15 @@ void Streaming::setup(){
 }
 
 bool Streaming::frame(){
-  static unsigned long last = 0;
   int packetIsThere = udp.parsePacket();
 
-
   if (packetIsThere){
-    // Serial.println("Llego paquete!");
     /* Every packet gets timestamped instantly when arrives.
        Later on, the offset with server is calculated using this arrival timestamp. */
     lastArrivedPacketTimestamp = clock->rawTime();
-    // Serial.printf("lastArrivedPacketTimestamp = %lu, diff = %i\n", lastArrivedPacketTimestamp, lastArrivedPacketTimestamp - last);
-    last = lastArrivedPacketTimestamp;
 
     if(udp.remoteIP().toString() != configuration->Streaming->serverIP){
       udp.flush();
-      // Serial.printf("Wrong IP! %s, %s\n", udp.remoteIP().toString().c_str(), configuration->Streaming->serverIP.c_str());
       return false;
     }
     if (packetIsThere != packetSize){
@@ -80,18 +74,6 @@ bool Streaming::frame(){
   return packetIsThere;
 }
 
-
-Streaming::~Streaming(){
-  if (dataBuffer)
-    delete []dataBuffer;
-  singleton(Configuration)->removeObserver(this);
-}
-
-void Streaming::configurationChanged(){
-  Serial.println("Streaming::configurationChanged()");
-  setup();
-}
-
 void Streaming::bufferFrame(){
   static bool waitingForSyncFrame = true;
   static bool firstFrame = true;
@@ -102,15 +84,14 @@ void Streaming::bufferFrame(){
   int size = udp.read(dataBuffer, packetSize);
   bytesReceived += size + 8 + 20;
 
-  // unsigned long udpTime = dataBuffer[0] + (dataBuffer[1]<<8) + (dataBuffer[2]<<16) + (dataBuffer[3]<<24);
   unsigned long playbackTime = dataBuffer[0] + (dataBuffer[1]<<8) + (dataBuffer[2]<<16) + (dataBuffer[3]<<24);
   byte seq = dataBuffer[4];
-  bool expClkSync = (dataBuffer[5] & 0x01 == 0x01);
+  byte flags = dataBuffer[5];
 
   Frame* frame = new Frame();
   frame->pt = playbackTime;
   frame->seq = seq;
-  frame->expClkSync = expClkSync;
+  frame->flags = flags;
   frame->len = configuration->Device->managedPixelsQty*3;
   frame->arriveTime = lastArrivedPacketTimestamp;
   int offset = STREAMING_HEADER_SIZE + configuration->Device->firstPixel*3;
@@ -123,10 +104,9 @@ void Streaming::bufferFrame(){
     return;
   }
 
-
   totalPackets++;
   if (!firstFrame && (frame->seq != expectedSeq)){
-  //  Serial.println("Wrong seq number! expected=" + String(expectedSeq) + " got=" + String(frame->seq));
+   Serial.println("Wrong seq number! expected=" + String(expectedSeq) + " got=" + String(frame->seq));
     lostPackets++;
     configuration->Stats->packetLossRate = (float)lostPackets/((float)totalPackets);
   }
@@ -162,7 +142,7 @@ Frame* Streaming::frameToPlay(){
     buffer.erase(buffer.begin());
     updateBufferStat();
   }else if(currentTime >= packetTime + 1){
-    // Serial.println("Frame delayed!!");
+    Serial.println("Frame delayed!!");
     times++;
     delayedPackets++;
     buffer.erase(buffer.begin());
@@ -195,4 +175,15 @@ void Streaming::updateBufferStat(){
   if (buffer.size() > configuration->Stats->streamingQueueMaxSize){
     configuration->Stats->streamingQueueMaxSize = buffer.size();
   }
+}
+
+Streaming::~Streaming(){
+  if (dataBuffer)
+    delete []dataBuffer;
+  singleton(Configuration)->removeObserver(this);
+}
+
+void Streaming::configurationChanged(){
+  Serial.println("Streaming::configurationChanged()");
+  setup();
 }

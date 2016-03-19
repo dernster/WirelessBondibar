@@ -55,10 +55,8 @@ Dictionary parseParameters(String stringParams){
   Dictionary result;
   vector<String> params = splitString(stringParams,' ');
   for(int i = 0; i < params.size(); i++){
-    Serial.printf("params[i] = %s\n", params[i].c_str());
     vector<String> keyValue = splitString(params[i],':');
     if (keyValue.size() == 2){
-      Serial.printf("key = %s, value =%s\n", keyValue[0].c_str(), keyValue[1].c_str());
       result[keyValue[0]] = keyValue[1];
     }
   }

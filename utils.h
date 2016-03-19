@@ -5,7 +5,7 @@
 #include "Dictionary.h"
 using namespace std;
 
-#define DEBUG(x)  x;
+#define DEBUG(x)
 
 #define time_r long
 
