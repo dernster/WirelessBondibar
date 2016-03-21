@@ -144,10 +144,37 @@ DefineConfig( Streaming,
     return String(config);
   })
 
+  var( String, multicastGroupIp,
+  {
+    config = value;
+  },
+  {
+    return config;
+  })
+
+  var( int, multicastGroupFirstPixel,
+  {
+    config = value.toInt();
+  },
+  {
+    return String(config);
+  })
+
+  var( int, pixelsQty,
+  {
+    config = value.toInt();
+  },
+  {
+    return String(config);
+  })
+
   expose(
       port,
       serverIP,
-      playbackTimeDelay
+      playbackTimeDelay,
+      multicastGroupIp,
+      multicastGroupFirstPixel,
+      pixelsQty
   );
 );
 
@@ -309,7 +336,7 @@ public:
     configs.push_back(ClockSync = new _ClockSync);
 
     this->Global->pixelsQty = 200; /* not set yet */
-    this->ControlServer->packetLength = 400;
+    this->ControlServer->packetLength = 600;
     this->ControlServer->keepAliveSeconds = 20;
     this->Stats->packetLossRate = 0;
     this->Device->managedPixelsQty = 8;

@@ -16,8 +16,11 @@ Streaming::Streaming(){
 void Streaming::setup(){
   bytesReceived = 0;
   lastArrivedPacketTimestamp = 0;
-  udp.begin(configuration->Streaming->port);
-  packetSize = configuration->Global->pixelsQty*3 + STREAMING_HEADER_SIZE; /* 6 = timestamp + seqNumber + flags */
+  Serial.println(configuration->Streaming->multicastGroupIp);
+  udp.beginMulticast(WiFi.localIP(), stringToIP(configuration->Streaming->multicastGroupIp), 7788);
+  Serial.printf("configuration->Streaming->pixelsQty %i\n", configuration->Streaming->pixelsQty);
+  Serial.printf("configuration->Streaming->multicastGroupFirstPixel %i\n", configuration->Streaming->multicastGroupFirstPixel);
+  packetSize = configuration->Streaming->pixelsQty*3 + STREAMING_HEADER_SIZE; /* 6 = timestamp + seqNumber + flags */
   if (dataBuffer){
     delete [] dataBuffer;
   }
@@ -94,7 +97,7 @@ void Streaming::bufferFrame(){
   frame->flags = flags;
   frame->len = configuration->Device->managedPixelsQty*3;
   frame->arriveTime = lastArrivedPacketTimestamp;
-  int offset = STREAMING_HEADER_SIZE + configuration->Device->firstPixel*3;
+  int offset = STREAMING_HEADER_SIZE + configuration->Device->firstPixel*3 - configuration->Streaming->multicastGroupFirstPixel*3;
   frame->data = copyBuffer(dataBuffer + offset, frame->len);
 
   bool isValid = clock->updateServerOffset(frame);
