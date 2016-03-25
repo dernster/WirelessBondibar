@@ -144,7 +144,7 @@ Frame* Streaming::frameToPlay(){
     times++;
     buffer.erase(buffer.begin());
     updateBufferStat();
-  }else if(currentTime >= packetTime + 1){
+  } else if U32_TIME_GREATER_THAN(currentTime, packetTime + 1){
     Serial.println("Frame delayed!!");
     times++;
     delayedPackets++;

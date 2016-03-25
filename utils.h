@@ -5,6 +5,9 @@
 #include "Dictionary.h"
 using namespace std;
 
+
+
+#define U32_TIME_GREATER_THAN(a, b) (((long)((a) - (b))) > 0)
 #define DEBUG(x)
 
 #define time_r long

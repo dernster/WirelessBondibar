@@ -68,7 +68,7 @@ TimeClock::TimeClock(){
 }
 
 void TimeClock::setup(){
-  minimumOffset = 2147483647;
+  minimumOffset = 0xFFFFFFFF;
   expirationPeriodIndex = 0;
   offsetExpirationExponent = 0;
   correction = 0;
@@ -110,7 +110,7 @@ bool TimeClock::updateServerOffset(Frame* frame){
    */
   if (abs(serverOffset.sample - offsetMean) > configuration->ClockSync->offsetSigma){
     DEBUG(
-      if (serverOffsetCumulativeMean.wasCalibrated())
+      if (expirationPeriodIndex != 0)
         Serial.printf("%i\t%lu\t%s\t%i\n", serverOffset, minimumOffset, String(offsetMean).c_str(),frame->seq);
     )
     return (expirationPeriodIndex != 0);
