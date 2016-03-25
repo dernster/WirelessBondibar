@@ -26,8 +26,8 @@ struct Modules{
 
     /* create modules */
     configuration = singleton(Configuration);
-    configuration->Wifi->ssid = "LarroBrun";
-    configuration->Wifi->password = "27067243LB";
+    configuration->Wifi->ssid = "/dev/null";
+    configuration->Wifi->password = "sudosudo";
 //    bondibar = singleton(Bondibar);
     ap = singleton(APServer);
     wifiManager = singleton(WifiManager);
@@ -52,6 +52,12 @@ struct Modules{
 
 Modules* modules;
 Frame* playFrame;
+
+#define HEADER_SIZE (6)
+#define PACKET_SIZE (HEADER_SIZE + 90*3)
+
+byte whitePacket[PACKET_SIZE] = {0};
+byte blackPacket[PACKET_SIZE] = {0};
 
 void setup() {
 
@@ -78,23 +84,26 @@ void setup() {
   WiFi.mode(WIFI_OFF);
   delay(500);
 
+  for(int i = HEADER_SIZE; i < PACKET_SIZE; i++){
+    blackPacket[i] = 0;
+    whitePacket[i] = 255;
+  }
+
 //  Serial.setDebugOutput(true);
   modules = new Modules();
 }
 //-------------------------------------------------
 
-
-byte packet[] = {0,0,0,0,0,255,255,255};
 byte seq = 0;
 WiFiUDP udp;
 
 time_r lastPacketTime = 0;
 bool yaMovi = false;
+bool pinState = true;
 
 inline void movePin(time_r time){
   if (((time % 1000) == 0) && !yaMovi){
-    digitalWrite(NOTIFY_PIN,HIGH);
-    digitalWrite(NOTIFY_PIN,LOW);
+    digitalWrite(NOTIFY_PIN,pinState = !pinState);
     yaMovi = true; /* to not move pin every time within 1ms */
     Serial.println("moviendo pata!");
   } else if ((time % 1000) != 0){
@@ -102,9 +111,11 @@ inline void movePin(time_r time){
   }
 }
 
+byte* currentPacket = whitePacket;
+
 void loop() {
 
-  time_r time = modules->clock->time();
+  unsigned long time = millis();
   movePin(time);
 
   if ((time - lastPacketTime) >= 42){
@@ -113,16 +124,15 @@ void loop() {
     seq++;
 
     if ((seq % 24) == 0) {
-      packet[7] = 255 - packet[7];
-      packet[6] = 255 - packet[6];
-      packet[5] = 255 - packet[5];
+      currentPacket = currentPacket == whitePacket ? blackPacket : whitePacket;
     }
-    time_r pt = time + 200;
-    packet[0] = pt & 0xFF;
-    packet[1] = (pt >> 8 ) & 0xFF;
-    packet[2] = (pt >> 16) & 0xFF;
-    packet[3] = (pt >> 24) & 0xFF;
-    packet[4] = seq & 0xFF;
+    unsigned long pt = time + 200;
+    currentPacket[0] = pt & 0xFF;
+    currentPacket[1] = (pt >> 8 ) & 0xFF;
+    currentPacket[2] = (pt >> 16) & 0xFF;
+    currentPacket[3] = (pt >> 24) & 0xFF;
+    currentPacket[4] = seq & 0xFF;
+    currentPacket[5] = 0; // flags
 
     // if (random(100) < 20){
     //   // simulate packet delay
@@ -135,9 +145,13 @@ void loop() {
 
       // send broadcast packet asking IP and Port of server
     IPAddress ip = WiFi.localIP();
-    ip[3] = 255;
-    int res = udp.beginPacket(ip,modules->configuration->Streaming->port);
-    udp.write(packet,8);
+    // ip[3] = 255;
+    // int res = udp.beginPacket(ip,modules->configuration->Streaming->port);
+    int res = udp.beginPacketMulticast(IPAddress(224, 0, 0, 116),
+                                     modules->configuration->Streaming->port,
+                                     ip,
+                                     1);
+    udp.write(currentPacket,PACKET_SIZE);
     udp.endPacket();
 
   }
