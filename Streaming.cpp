@@ -37,10 +37,10 @@ bool Streaming::frame(){
        Later on, the offset with server is calculated using this arrival timestamp. */
     lastArrivedPacketTimestamp = clock->rawTime();
 
-    if(udp.remoteIP().toString() != configuration->Streaming->serverIP){
-      udp.flush();
-      return false;
-    }
+    // if(udp.remoteIP().toString() != configuration->Streaming->serverIP){
+    //   udp.flush();
+    //   return false;
+    // }
     if (packetIsThere != packetSize){
       udp.flush();
       Serial.printf("Wrong size of streaming packet! %i\n",packetIsThere);
