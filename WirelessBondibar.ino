@@ -37,6 +37,7 @@ struct Modules{
     ap = singleton(APServer);
     wifiManager = singleton(WifiManager);
     controlServer = singleton(ControlServer);
+    bondibar->setup();
     streaming = singleton(Streaming);
     clock = singleton(TimeClock);
   }

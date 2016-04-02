@@ -1,5 +1,6 @@
 #include "Bondibar.h"
 #include "utils.h"
+#include "assert.h"
 
 SINGLETON_CPP(Bondibar)
 
@@ -25,13 +26,31 @@ Bondibar::Bondibar(){
       green[i] = 255;
   }
 
-  sendData(red,LEN);
+  SPI.writeBytes(red,LEN);
   delay(500);
-  sendData(green,LEN);
+  SPI.writeBytes(green,LEN);
   delay(500);
-  sendData(blue,LEN);
+  SPI.writeBytes(blue,LEN);
   delay(500);
-  sendData(black,LEN);
+  SPI.writeBytes(black,LEN);
+}
+
+void Bondibar::setup() {
+  vector<String> colorOrderListAux = splitString(singleton(Configuration)->Device->colorOrder, ',');
+  for (int i = 0; i < colorOrderListAux.size(); i++){
+    if (colorOrderListAux[i] == "RGB")
+      colorOrderList.push_back(RGB);
+    else if (colorOrderListAux[i] == "RBG")
+      colorOrderList.push_back(RBG);
+    else if (colorOrderListAux[i] == "BRG")
+      colorOrderList.push_back(BRG);
+    else if (colorOrderListAux[i] == "BGR")
+      colorOrderList.push_back(BGR);
+    else if (colorOrderListAux[i] == "GRB")
+      colorOrderList.push_back(GRB);
+    else if (colorOrderListAux[i] == "GBR")
+      colorOrderList.push_back(GBR);
+  }
 }
 
 void Bondibar::turnOffLights(){
@@ -45,11 +64,41 @@ void Bondibar::turnOffLights(){
 }
 
 void Bondibar::sendData(byte* data, int len){
-  SPI.writeBytes(data,len);
-}
-
-void Bondibar::sendData(byte* data, int offset, int len){
-  SPI.writeBytes(data + offset,len);
+  int i;
+  for (i = 0; i < colorOrderList.size(); i++, data += 3) {
+    switch (colorOrderList[i]) {
+      case RGB:
+        SPI.writeBytes(data, 3);
+        break;
+      case RBG:
+        SPI.write(data[0]);
+        SPI.write(data[2]);
+        SPI.write(data[1]);
+        break;
+      case BGR:
+        SPI.write(data[2]);
+        SPI.write(data[1]);
+        SPI.write(data[0]);
+        break;
+      case BRG:
+        SPI.write(data[2]);
+        SPI.write(data[0]);
+        SPI.write(data[1]);
+        break;
+      case GRB:
+        SPI.write(data[1]);
+        SPI.write(data[0]);
+        SPI.write(data[2]);
+        break;
+      case GBR:
+        SPI.write(data[1]);
+        SPI.write(data[2]);
+        SPI.write(data[0]);
+        break;
+      default:
+        break;
+    }
+  }
 }
 
 void Bondibar::configurationChanged(){

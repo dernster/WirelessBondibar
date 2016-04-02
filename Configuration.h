@@ -108,10 +108,19 @@ DefineConfig( Device,
     return String(config);
   })
 
+  var( String, colorOrder,
+  {
+    config = value;
+  },
+  {
+    return config;
+  })
+
   expose(
       number,
       managedPixelsQty,
-      firstPixel
+      firstPixel,
+      colorOrder
   );
 );
 
