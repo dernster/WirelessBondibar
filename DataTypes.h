@@ -31,6 +31,18 @@ public:
     conf = singleton(Configuration);
   }
 
+  Frame(const Frame & frame) {
+    this->conf = singleton(Configuration);
+    this->len = frame.len;
+    this->data = new byte[this->len];
+    for (int i = 0; i < this->len; i++)
+      this->data[i] = frame.data[i];
+    this->seq = frame.seq;
+    this->flags = frame.flags;
+    this->pt = frame.pt;
+    this->arriveTime = frame.arriveTime;
+  }
+
   Sample<long> getOffsetAgainstServerTime(){
     long sample = (pt - conf->Streaming->playbackTimeDelay) - arriveTime;
     return Sample<long>(sample, arriveTime);

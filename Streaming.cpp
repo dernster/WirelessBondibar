@@ -10,6 +10,10 @@ Streaming::Streaming(){
   clock = singleton(TimeClock);
   configuration->addObserver(this);
   dataBuffer = NULL;
+  lastFramesBuffer = std::vector<Frame*> (FRAMES_TO_INTERPOLATE);
+  lastFrameIndex = -1;
+  for (int i = 0; i < FRAMES_TO_INTERPOLATE; i++)
+    lastFramesBuffer[i] = NULL;
   setup();
 }
 
@@ -109,7 +113,35 @@ void Streaming::bufferFrame(){
 
   totalPackets++;
   if (!firstFrame && (frame->seq != expectedSeq)){
-   Serial.println("Wrong seq number! expected=" + String(expectedSeq) + " got=" + String(frame->seq));
+    Serial.println("Wrong seq number! expected=" + String(expectedSeq) + " got=" + String(frame->seq));
+    if (lastFrameIndex > -1) {
+      int i;
+      int cfi = lastFrameIndex;
+      for (i = expectedSeq; i == frame->seq - 1; i = (i + 1) % 256) {
+
+        Frame* lastReceivedFrame = lastFramesBuffer[cfi];
+
+        Frame* customFrame = new Frame();
+        customFrame->pt = lastReceivedFrame->pt + (frame->pt - lastReceivedFrame->pt) / (abs(frame->seq - lastReceivedFrame->seq) % 256);
+        customFrame->seq = expectedSeq;
+        customFrame->flags = frame->flags;
+        customFrame->len = configuration->Device->managedPixelsQty*3;
+        customFrame->arriveTime = clock->rawTime();
+        customFrame->data = new byte[customFrame->len];
+
+        for (int j = 0; j < customFrame->len; j = j + 3) {
+          customFrame->data[j] = (lastReceivedFrame->data[j] + frame->data[j]) / 2;
+          customFrame->data[j+1] = (lastReceivedFrame->data[j+1] + frame->data[j+1]) / 2;
+          customFrame->data[j+2] = (lastReceivedFrame->data[j+2] + frame->data[j+2]) / 2;
+        }
+
+        buffer.push_back(customFrame);
+
+        lastFrameIndex = cfi;
+        cfi = (cfi + 1) % FRAMES_TO_INTERPOLATE;
+
+      }
+    }
     lostPackets++;
     configuration->Stats->packetLossRate = (float)lostPackets/((float)totalPackets);
   }
@@ -120,6 +152,13 @@ void Streaming::bufferFrame(){
     Serial.println("Buffer overloaded!");
     return;
   }
+
+  lastFrameIndex = (lastFrameIndex + 1) % FRAMES_TO_INTERPOLATE;
+
+  if (lastFramesBuffer[lastFrameIndex] != NULL)
+    delete lastFramesBuffer[lastFrameIndex];
+
+  lastFramesBuffer[lastFrameIndex] = new Frame(*frame);
 
   firstFrame = false;
   buffer.push_back(frame);

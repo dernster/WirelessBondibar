@@ -5,6 +5,8 @@
 #include "TimeClock.h"
 #include "DataTypes.h"
 
+#define FRAMES_TO_INTERPOLATE (1)
+
 class Streaming : ConfigurationObserver{
 SINGLETON_H(Streaming)
 private:
@@ -16,6 +18,8 @@ private:
   TimeClock* clock;
   void setup();
   vector<Frame*> buffer;
+  vector<Frame*> lastFramesBuffer;
+  int lastFrameIndex;
 public:
   WiFiUDP udp;
   Streaming();
