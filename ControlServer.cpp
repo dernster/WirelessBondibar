@@ -126,23 +126,18 @@ SenderoControlHeader ControlServer::processCommand(){
   if (header.configurationFlag){
     int i = 0;
     while(true){
+      yield();
       byte b = client.read();
       if (b == -1){
         delay(100);
         continue;
       }
-
       buffer[i] = (char)b;
-
       if (buffer[i] == '\0'){
         break;
       }
       i++;
     }
-
-    Serial.println("Sali del while");
-
-    Serial.println(buffer);
 
     String configs = String(buffer);
     Dictionary dict = parseParameters(configs);
@@ -165,6 +160,8 @@ void ControlServer::obtainServerEndpoint(){
 
   while(true){
 
+    yield();
+
     /* allow connections from AP */
     ap->handleClient();
 
@@ -180,8 +177,12 @@ void ControlServer::obtainServerEndpoint(){
     // wait for response
 
     LOOP_UNTIL(2000){
+
+      yield();
+
       /* allow connections from AP */
       ap->handleClient();
+
       if (client = server->available()){
         configuration->Streaming->serverIP = client.remoteIP().toString();
         Serial.printf("got client!, %s\n", configuration->Streaming->serverIP.c_str());
@@ -191,8 +192,9 @@ void ControlServer::obtainServerEndpoint(){
         /* receive initial configuration */
         bool configurationReceived = false;
         bool clockSync = false;
-        // while (!configurationReceived || !clockSync){
+
         while (!configurationReceived){
+          yield();
 
           /* allow connections from AP */
           ap->handleClient();

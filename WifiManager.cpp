@@ -20,10 +20,11 @@ void WifiManager::connect(){
   APServer* ap = singleton(APServer);
   WiFi.begin(configuration->Wifi->ssid.c_str(),configuration->Wifi->password.c_str());
   WiFi.mode(WIFI_STA);
-//  WiFi.begin("LarroBrun","27067243LB");
+
   Serial.println("Attempting to connect to SSID " + configuration->Wifi->ssid + "... password=" + configuration->Wifi->password + " " + String(configuration->Wifi->password.length()));
   while ( WiFi.status() != WL_CONNECTED) {
     LOOP_UNTIL(2000){
+      yield();
       ap->handleClient(); /* allow connections to AP, in case someone needs to change ssid */
     }
   }

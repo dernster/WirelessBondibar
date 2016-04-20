@@ -69,7 +69,9 @@ void setup() {
   bool setPowerSavingOff = wifi_set_sleep_type(NONE_SLEEP_T);
 
   Serial.begin(9600);
-  while (!Serial) {}
+  while (!Serial) {
+    yield();
+  }
 
   Serial.printf("Set wifi power save OFF -> ");
   setPowerSavingOff ? Serial.println("SUCCESS!") : Serial.println("ERROR");
@@ -93,14 +95,13 @@ void setup() {
   wifi_station_set_hostname(hostName);
   delete[] hostName;
 
-  // WiFi.disconnect();
   WiFi.mode(WIFI_STA);
-  // delay(500);
 
   Serial.setDebugOutput(true);
 
   delay(500);
   modules = new Modules();
+
 }
 //-------------------------------------------------
 

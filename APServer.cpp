@@ -19,7 +19,6 @@ void APServer::setup(){
   server = new ESP8266WebServer(80);
   String n = String(conf->Device->number);
   apIP = "192.168.4.1";
-  // WiFi.mode(WIFI_STA);
   WiFi.softAP(("WBB-" + n).c_str());
 
   IPAddress myIP = WiFi.softAPIP();
@@ -113,8 +112,9 @@ String APServer::buildPage(){
 "}"
 "</script>"
 "<div id=\"customForm\">";
-
+  yield();
   vector<IStringConvertibleVariable*> vars = conf->toVars();
+  yield();
   String inputs = ""
   "<table border=\"1\">"
     "<tr>"
@@ -122,10 +122,12 @@ String APServer::buildPage(){
     "<th>Value</th>"
     "</tr>";
 
-  String styleForInput = "STYLE=\"text-align: center; color: #ffffff; font-weight: bold; background-color: #5ba4a0;\"";
-  String styleForPersistentInput = "STYLE=\"text-align: center; color: #ffffff; font-weight: bold; background-color: #407270;\"";
+  /* styles are commented because of heap memory usage */
+  String styleForInput = "";//;"STYLE=\"text-align: center; color: #ffffff; font-weight: bold; background-color: #5ba4a0;\"";
+  String styleForPersistentInput = "";//"STYLE=\"text-align: center; color: #ffffff; font-weight: bold; background-color: #407270;\"";
 
   for(int i = 0; i < vars.size(); i++){
+    yield();
     IStringConvertibleVariable* var = vars[i];
     inputs += "<tr>";
     inputs += "<td>" + var->getTag() + "</td>";
@@ -133,6 +135,7 @@ String APServer::buildPage(){
     inputs += "</tr>";
   }
 
+  yield();
   inputs += "<tr> <td align=\"right\" cellpadding=\"5\" id=\"log\"> </td> <td cellpadding=\"5\" align=\"right\"> <button type=\"button\" onclick=\"loadDoc()\">Save</button> </td> </tr>";
   inputs += "</table>";
 
