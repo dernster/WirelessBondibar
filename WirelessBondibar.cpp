@@ -40,15 +40,15 @@ struct Modules{
     bondibar->setup();
     streaming = singleton(Streaming);
     clock = singleton(TimeClock);
-  }
+  };
 
-  void reset(){
+  void reset() {
     firstTime = true;
     streaming->udp.stop();
     clock->setup();
     bondibar->turnOffLights();
     configuration->notifyObservers();
-  }
+  };
 
   Configuration* configuration;
   APServer* ap;
@@ -57,6 +57,7 @@ struct Modules{
   ControlServer* controlServer;
   Bondibar* bondibar;
   TimeClock* clock;
+
 };
 
 Modules* modules;
@@ -140,7 +141,8 @@ void loop() {
       /* server is dead */
       flashLed(300,250,3);
       Serial.println("SERVER IS DEAD! Reseting modules!");
-      modules->reset();
+      ESP.restart();
+      // modules->reset();
     }
   }
 }

@@ -20,16 +20,16 @@ Streaming::Streaming(){
 void Streaming::setup(){
   bytesReceived = 0;
   lastArrivedPacketTimestamp = 0;
-  Serial.println(configuration->Streaming->multicastGroupIp);
+  // Serial.println(configuration->Streaming->multicastGroupIp);
   udp.beginMulticast(WiFi.localIP(), stringToIP(configuration->Streaming->multicastGroupIp), 7788);
-  Serial.printf("configuration->Streaming->pixelsQty %i\n", configuration->Streaming->pixelsQty);
-  Serial.printf("configuration->Streaming->multicastGroupFirstPixel %i\n", configuration->Streaming->multicastGroupFirstPixel);
+  // Serial.printf("configuration->Streaming->pixelsQty %i\n", configuration->Streaming->pixelsQty);
+  // Serial.printf("configuration->Streaming->multicastGroupFirstPixel %i\n", configuration->Streaming->multicastGroupFirstPixel);
   packetSize = configuration->Streaming->pixelsQty*3 + STREAMING_HEADER_SIZE; /* 6 = timestamp + seqNumber + flags */
   if (dataBuffer){
     delete [] dataBuffer;
   }
   dataBuffer = new byte[packetSize];
-  Serial.println(String("dataBuffer size = ") + String(packetSize));
+  // Serial.println(String("dataBuffer size = ") + String(packetSize));
   active = true;
 }
 
@@ -47,7 +47,7 @@ bool Streaming::frame(){
     // }
     if (packetIsThere != packetSize){
       udp.flush();
-      Serial.printf("Wrong size of streaming packet! %i\n",packetIsThere);
+      // Serial.printf("Wrong size of streaming packet! %i\n",packetIsThere);
       return false;
     }
   }
@@ -66,8 +66,8 @@ bool Streaming::frame(){
     active = ((actualTime - lastPacketTime) < 5*1000); /* 5 seconds */
   }
   if (lastActive && !active){
-    Serial.println("Streaming is now INACTIVE!");
-    stop = clock->rawTime() - (actualTime - lastPacketTime);
+    // Serial.println("Streaming is now INACTIVE!");
+    stop = lastPacketTime;
 
     /* update configuration */
     configuration->Stats->bitRate = (8*bytesReceived/((stop - start)/1000.0))/1000.0;
@@ -75,7 +75,7 @@ bool Streaming::frame(){
   }else if (!lastActive && active){
     start = lastPacketTime;
     bytesReceived = 0;
-    Serial.println("Streaming is now ACTIVE!");
+    // Serial.println("Streaming is now ACTIVE!");
   }
 
   return packetIsThere;
@@ -85,11 +85,11 @@ void Streaming::bufferFrame(){
   static bool waitingForSyncFrame = true;
   static bool firstFrame = true;
   static byte expectedSeq = 0;
-  static unsigned long totalPackets = 0;
+  static unsigned long totalReceivedPackets = 0;
   static unsigned long lostPackets = 0;
 
   int size = udp.read(dataBuffer, packetSize);
-  bytesReceived += size + 8 + 20;
+  bytesReceived += size + 8 + 20 + 14;
 
   unsigned long playbackTime = dataBuffer[0] + (dataBuffer[1]<<8) + (dataBuffer[2]<<16) + (dataBuffer[3]<<24);
   byte seq = dataBuffer[4];
@@ -111,9 +111,9 @@ void Streaming::bufferFrame(){
     return;
   }
 
-  totalPackets++;
+  totalReceivedPackets++;
   if (!firstFrame && (frame->seq != expectedSeq)){
-    Serial.println("Wrong seq number! expected=" + String(expectedSeq) + " got=" + String(frame->seq));
+    // Serial.println("Wrong seq number! expected=" + String(expectedSeq) + " got=" + String(frame->seq));
     if (lastFrameIndex > -1) {
       int i;
       int cfi = lastFrameIndex;
@@ -136,20 +136,21 @@ void Streaming::bufferFrame(){
         }
 
         buffer.push_back(customFrame);
+        updateBufferStat();
 
         lastFrameIndex = cfi;
         cfi = (cfi + 1) % FRAMES_TO_INTERPOLATE;
 
       }
     }
-    lostPackets++;
-    configuration->Stats->packetLossRate = (float)lostPackets/((float)totalPackets);
+    lostPackets += frame->seq - expectedSeq;
+    configuration->Stats->packetLossRate = (float)lostPackets / ((float)totalReceivedPackets + (float)lostPackets);
   }
 
   expectedSeq = (frame->seq + 1) % 256;
 
   if (buffer.size() >= 200){
-    Serial.println("Buffer overloaded!");
+    // Serial.println("Buffer overloaded!");
     return;
   }
 
@@ -168,8 +169,8 @@ void Streaming::bufferFrame(){
 Frame* Streaming::frameToPlay(){
 
   static int times = 0;
-  static float meanCount = 0;
-  static float meanSum = 0;
+  static float delaysCount = 0;
+  static float delaysSum = 0;
   static int delayedPackets = 0;
 
   if (buffer.size() == 0)
@@ -184,15 +185,15 @@ Frame* Streaming::frameToPlay(){
     buffer.erase(buffer.begin());
     updateBufferStat();
   } else if U32_TIME_GREATER_THAN(currentTime, packetTime + 1){
-    Serial.println("Frame delayed!!");
+    // Serial.println("Frame delayed!!");
     times++;
     delayedPackets++;
     buffer.erase(buffer.begin());
     updateBufferStat();
-    meanCount++;
-    meanSum += (currentTime - packetTime);
-    configuration->Stats->playbackMeanDelay = meanSum / meanCount;
-    if (configuration->Stats->playbackMaxDelay < (currentTime - packetTime))
+    delaysCount++;
+    delaysSum += (currentTime - packetTime);
+    configuration->Stats->playbackMeanDelay = delaysSum / delaysCount;
+    if (currentTime - packetTime > configuration->Stats->playbackMaxDelay)
       configuration->Stats->playbackMaxDelay = currentTime - packetTime;
 
     delete frame;
@@ -226,6 +227,6 @@ Streaming::~Streaming(){
 }
 
 void Streaming::configurationChanged(){
-  Serial.println("Streaming::configurationChanged()");
+  // Serial.println("Streaming::configurationChanged()");
   setup();
 }
