@@ -13,7 +13,7 @@
 #include "APServer.h"
 #include "TimeClock.h"
 
-#define NOTIFY_PIN 5
+#define NOTIFY_PIN 10
 
 extern "C" {
 #include "user_interface.h"
@@ -54,10 +54,12 @@ Modules* modules;
 Frame* playFrame;
 
 #define HEADER_SIZE (6)
-#define PACKET_SIZE (HEADER_SIZE + 90*3)
+#define PACKET_SIZE (HEADER_SIZE + (8*12*3))
 
 byte whitePacket[PACKET_SIZE] = {0};
 byte blackPacket[PACKET_SIZE] = {0};
+
+IPAddress ip = WiFi.localIP();
 
 void setup() {
 
@@ -86,16 +88,18 @@ void setup() {
 
   for(int i = HEADER_SIZE; i < PACKET_SIZE; i++){
     blackPacket[i] = 0;
-    whitePacket[i] = 255;
+    whitePacket[i] = 30;
   }
 
 //  Serial.setDebugOutput(true);
   modules = new Modules();
+  ip = WiFi.localIP();
 }
 //-------------------------------------------------
 
 byte seq = 0;
 WiFiUDP udp;
+IPAddress multicastIP = IPAddress(224, 0, 0, 116);
 
 time_r lastPacketTime = 0;
 bool yaMovi = false;
@@ -116,17 +120,16 @@ byte* currentPacket = whitePacket;
 void loop() {
 
   unsigned long time = millis();
-  movePin(time);
 
-  if ((time - lastPacketTime) >= 42){
+  if ((time - lastPacketTime) >= 33){
 
     lastPacketTime = time;
     seq++;
 
-    if ((seq % 24) == 0) {
+    if ((seq % 32) == 0) {
       currentPacket = currentPacket == whitePacket ? blackPacket : whitePacket;
     }
-    unsigned long pt = time + 200;
+    unsigned long pt = time + 100;
     currentPacket[0] = pt & 0xFF;
     currentPacket[1] = (pt >> 8 ) & 0xFF;
     currentPacket[2] = (pt >> 16) & 0xFF;
@@ -134,20 +137,11 @@ void loop() {
     currentPacket[4] = seq & 0xFF;
     currentPacket[5] = 0; // flags
 
-    // if (random(100) < 20){
-    //   // simulate packet delay
-    //   LOOP_UNTIL(10 + random(100)){
-    //     time_r time = modules->clock->time();
-    //     movePin(time);
-    //   }
-    // }
-
-
-      // send broadcast packet asking IP and Port of server
-    IPAddress ip = WiFi.localIP();
-    // ip[3] = 255;
-    // int res = udp.beginPacket(ip,modules->configuration->Streaming->port);
-    int res = udp.beginPacketMulticast(IPAddress(224, 0, 0, 116),
+    if ((seq % 32) == 0){
+      digitalWrite(NOTIFY_PIN,pinState = !pinState);
+      Serial.println("moviendo pata!");
+    }
+    int res = udp.beginPacketMulticast(multicastIP,
                                      modules->configuration->Streaming->port,
                                      ip,
                                      1);
