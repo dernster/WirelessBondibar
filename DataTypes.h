@@ -1,5 +1,8 @@
 #pragma once
 #include "Configuration.h"
+#include <vector>
+
+using namespace std;
 
 template <typename T>
 struct Sample{
@@ -25,6 +28,7 @@ public:
   unsigned long pt;
   byte seq;
   byte flags;
+  bool isGeneratedFrame;
   unsigned long arriveTime;
 
   Frame(){
@@ -41,11 +45,36 @@ public:
     this->flags = frame.flags;
     this->pt = frame.pt;
     this->arriveTime = frame.arriveTime;
+    this->isGeneratedFrame = frame.isGeneratedFrame;
   }
 
   Sample<long> getOffsetAgainstServerTime(){
     long sample = (pt - conf->Streaming->playbackTimeDelay) - arriveTime;
     return Sample<long>(sample, arriveTime);
+  }
+
+  static void insertFrameInOrder(vector<Frame *> &buffer, Frame *frame) {
+    /****
+     ** Inserts ordered by pt
+     */
+    if (buffer.size() > 0) {
+
+      int i = buffer.size() - 1;
+      while (i >= 0 && U32_TIME_GREATER_THAN(buffer[i]->pt, frame->pt)) {
+        // Serial.printf("el i: %i\n", i);
+        i--;
+      }
+
+      // if (buffer[i]->seq == frame->seq)
+      //   Serial.printf("EL MISMO PT!!!! %lu\n", frame->seq);
+
+      if (i == buffer.size() - 1)
+        buffer.push_back(frame);
+      else
+        buffer.insert(buffer.begin() + i + 1, frame);
+
+    } else
+      buffer.push_back(frame);
   }
 
   ~Frame(){

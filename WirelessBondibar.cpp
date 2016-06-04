@@ -12,7 +12,7 @@
 #include "APServer.h"
 #include "TimeClock.h"
 
-#define NOTIFY_PIN 5
+#define NOTIFY_PIN 10
 
 extern "C" {
   #include "ets_sys.h"
@@ -106,28 +106,67 @@ void setup() {
 }
 //-------------------------------------------------
 
+unsigned long packetsPlayedQty = 0, lastPacketPlaybackRawTime = 0, packetPlaybackDiffSum = 0
+            , packetPlaybackDiffSumPow = 0, previousPacketSeq = 0;
 bool value = true;
 void loop() {
 
   // move pin in specific times
-  unsigned long time = modules->clock->time();
-  if (modules->clock->isSynced() && msIsMultiple(time,1000)){
-    digitalWrite(NOTIFY_PIN,value = !value);
-    // Serial.println("moviendo pata!");
-  }
+  // unsigned long time = modules->clock->time();
+  // if (modules->clock->isSynced() && msIsMultiple(time,1000)){
+  //   digitalWrite(NOTIFY_PIN,value = !value);
+  //   // Serial.println("moviendo pata!");
+  // }
 
   // if (msIsMultiple(time, 5*60*1000)){
   //   system_print_meminfo();
   // }
 
+
   if (modules->streaming->frame()){
 
     modules->streaming->bufferFrame();
 
-  }else if((playFrame = modules->streaming->frameToPlay()) != NULL){
+  } else if((playFrame = modules->streaming->frameToPlay()) != NULL){
 
-    modules->bondibar->sendData(playFrame->data,playFrame->len);
-    delete playFrame;
+      // move pin in specific times
+      // unsigned long time = modules->clock->time();
+      if (modules->clock->isSynced() && (playFrame->seq % 32) == 0){
+        digitalWrite(NOTIFY_PIN,value = !value);
+        // Serial.println("moviendo pata!");
+      }
+
+      unsigned long currentFrameRawPt = modules->clock->rawTime();
+      modules->bondibar->sendData(playFrame->data, playFrame->len);
+
+      // if (playFrame->isGeneratedFrame)
+      //   Serial.println("PLAYED A GENERATED FRAME!");
+
+      if (packetsPlayedQty > 0 && previousPacketSeq + 1 == playFrame->seq) {
+        unsigned long currentDifference = currentFrameRawPt - lastPacketPlaybackRawTime;
+
+        if (currentDifference > modules->configuration->Stats->ptFrameRateMax) {
+          // Serial.printf("MAX: %lu %i %i\n", currentDifference, previousPacketSeq, playFrame->seq);
+          modules->configuration->Stats->ptFrameRateMax = currentDifference;
+        }
+
+        if (currentDifference < modules->configuration->Stats->ptFrameRateMin){
+          // Serial.printf("MIN: %lu %i %i\n", currentDifference, previousPacketSeq, playFrame->seq);
+          modules->configuration->Stats->ptFrameRateMin = currentDifference;
+        }
+
+        packetPlaybackDiffSum += currentDifference;
+        packetPlaybackDiffSumPow += pow(currentFrameRawPt - lastPacketPlaybackRawTime, 2);
+        modules->configuration->Stats->ptFrameRateMean = packetPlaybackDiffSum / packetsPlayedQty;
+        modules->configuration->Stats->ptFrameRateStdev = sqrt(
+          (packetPlaybackDiffSumPow / packetsPlayedQty) - pow(modules->configuration->Stats->ptFrameRateMean, 2));
+      }
+
+      packetsPlayedQty++;
+
+      previousPacketSeq = playFrame->seq;
+      lastPacketPlaybackRawTime = currentFrameRawPt;
+      delete playFrame;
 
   }else if (modules->controlServer->incomingCommand()){
 

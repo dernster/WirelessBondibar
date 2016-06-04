@@ -92,10 +92,12 @@ void Streaming::bufferFrame(){
   bytesReceived += size + 8 + 20 + 14;
 
   unsigned long playbackTime = dataBuffer[0] + (dataBuffer[1]<<8) + (dataBuffer[2]<<16) + (dataBuffer[3]<<24);
+
   byte seq = dataBuffer[4];
   byte flags = dataBuffer[5];
 
   Frame* frame = new Frame();
+  frame->isGeneratedFrame = false;
   frame->pt = playbackTime;
   frame->seq = seq;
   frame->flags = flags;
@@ -112,42 +114,58 @@ void Streaming::bufferFrame(){
   }
 
   totalReceivedPackets++;
-  if (!firstFrame && (frame->seq != expectedSeq)){
-    // Serial.println("Wrong seq number! expected=" + String(expectedSeq) + " got=" + String(frame->seq));
+
+  unsigned long curr_time = clock->time();
+  if (U32_TIME_GREATER_THAN(curr_time, playbackTime)) {
+    Serial.printf("A frame arrived too late: %lu\n", curr_time - playbackTime);
+    delete frame;
+    return;
+  }
+
+  if (!firstFrame && (int)frame->seq - (int)expectedSeq > 0) {
+
+    /***
+     * Generate missing packet
+     */
     if (lastFrameIndex > -1) {
-      int i;
+      byte i;
       int cfi = lastFrameIndex;
-      for (i = expectedSeq; i == frame->seq - 1; i = (i + 1) % 256) {
+      Frame* lastReceivedFrame = lastFramesBuffer[cfi];
+      for (i = expectedSeq; i < frame->seq; i++) {
+        unsigned long pt = lastReceivedFrame->pt + ((float)(frame->pt - lastReceivedFrame->pt) / (float)(frame->seq - lastReceivedFrame->seq));
+        // Serial.printf("previouslyReceivedFrame=%i\ncurrentTime=%lu\npreviouslyPT=%lu\ncalculatedPT=%lu\n", clock->time(), lastReceivedFrame->seq, lastReceivedFrame->pt, pt);
+        if (U32_TIME_GREATER_THAN(pt, clock->time())) {
+          // Serial.println("Generating frame");
+          Frame* customFrame = new Frame();
+          customFrame->isGeneratedFrame = true;
+          customFrame->pt = pt;
+          customFrame->seq = i;
+          customFrame->flags = frame->flags;
+          customFrame->len = configuration->Device->managedPixelsQty*3;
+          // calculated arrival is current raw time  minus x times the configured playbackTimeDelay
+          // customFrame->arriveTime = clock->rawTime(); //- ((i - expectedSeq + 1) * configuration->Streaming->playbackTimeDelay);
+          customFrame->data = new byte[customFrame->len];
+          // Serial.printf("Generated sequence time: %i, prevpt: %lu, pt: %lu\n", customFrame->seq, lastReceivedFrame->pt, customFrame->pt);
+          for (int j = 0; j < customFrame->len; j = j + 3) {
+            customFrame->data[j] = (lastReceivedFrame->data[j] + frame->data[j]) / 2;
+            customFrame->data[j+1] = (lastReceivedFrame->data[j+1] + frame->data[j+1]) / 2;
+            customFrame->data[j+2] = (lastReceivedFrame->data[j+2] + frame->data[j+2]) / 2;
+          }
 
-        Frame* lastReceivedFrame = lastFramesBuffer[cfi];
+          Frame::insertFrameInOrder(buffer, customFrame);
+          lastReceivedFrame = customFrame;
+          updateBufferStat();
 
-        Frame* customFrame = new Frame();
-        customFrame->pt = lastReceivedFrame->pt + (frame->pt - lastReceivedFrame->pt) / (abs(frame->seq - lastReceivedFrame->seq) % 256);
-        customFrame->seq = expectedSeq;
-        customFrame->flags = frame->flags;
-        customFrame->len = configuration->Device->managedPixelsQty*3;
-        customFrame->arriveTime = clock->rawTime();
-        customFrame->data = new byte[customFrame->len];
-
-        for (int j = 0; j < customFrame->len; j = j + 3) {
-          customFrame->data[j] = (lastReceivedFrame->data[j] + frame->data[j]) / 2;
-          customFrame->data[j+1] = (lastReceivedFrame->data[j+1] + frame->data[j+1]) / 2;
-          customFrame->data[j+2] = (lastReceivedFrame->data[j+2] + frame->data[j+2]) / 2;
+          lastFrameIndex = cfi;
+          cfi = (cfi + 1) % FRAMES_TO_INTERPOLATE;
         }
-
-        buffer.push_back(customFrame);
-        updateBufferStat();
-
-        lastFrameIndex = cfi;
-        cfi = (cfi + 1) % FRAMES_TO_INTERPOLATE;
-
       }
     }
     lostPackets += frame->seq - expectedSeq;
     configuration->Stats->packetLossRate = (float)lostPackets / ((float)totalReceivedPackets + (float)lostPackets);
   }
 
-  expectedSeq = (frame->seq + 1) % 256;
+  expectedSeq = frame->seq + 1;
 
   if (buffer.size() >= 200){
     // Serial.println("Buffer overloaded!");
@@ -162,7 +180,9 @@ void Streaming::bufferFrame(){
   lastFramesBuffer[lastFrameIndex] = new Frame(*frame);
 
   firstFrame = false;
-  buffer.push_back(frame);
+
+  Frame::insertFrameInOrder(buffer, frame);
+
   updateBufferStat();
 }
 
@@ -185,7 +205,7 @@ Frame* Streaming::frameToPlay(){
     buffer.erase(buffer.begin());
     updateBufferStat();
   } else if U32_TIME_GREATER_THAN(currentTime, packetTime + 1){
-    // Serial.println("Frame delayed!!");
+    Serial.printf("Frame delayed!! %i, %lu, %lu, %lu\n", frame->isGeneratedFrame, currentTime - (packetTime + 1), currentTime, (packetTime + 1));
     times++;
     delayedPackets++;
     buffer.erase(buffer.begin());

@@ -253,6 +253,10 @@ DefineConfig( Stats,
     playbackMaxDelay = 0;
     packetLossRate = 0;
     delayedFramesRate = 0;
+    ptFrameRateMean = 0;
+    ptFrameRateStdev = 0;
+    ptFrameRateMax = 0;
+    ptFrameRateMin = 999999999;
     dirty = false;
   }
 
@@ -291,6 +295,26 @@ DefineConfig( Stats,
     return String(config,4);
   })
 
+  readOnly( float, ptFrameRateMean,
+  {
+    return String(config,4);
+  })
+
+  readOnly( float, ptFrameRateStdev,
+  {
+    return String(config,4);
+  })
+
+  readOnly( float, ptFrameRateMax,
+  {
+    return String(config,4);
+  })
+
+  readOnly( float, ptFrameRateMin,
+  {
+    return String(config,4);
+  })
+
   readOnly( bool, dirty,
   {
     return config ? "True" : "False";
@@ -304,8 +328,12 @@ DefineConfig( Stats,
       playbackMaxDelay,
       packetLossRate,
       delayedFramesRate,
+      ptFrameRateMean,
+      ptFrameRateStdev,
+      ptFrameRateMax,
+      ptFrameRateMin,
       dirty
-  );
+    );
 );
 
 //-------------Global---------------

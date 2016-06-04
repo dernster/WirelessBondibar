@@ -11,7 +11,7 @@ typedef String (*getterPtr)(void* intance);
 
 class IStringConvertibleVariable{
 public:
-  virtual String getString() = 0; 
+  virtual String getString() = 0;
   virtual String getTag() = 0;
   virtual String getName() = 0;
   virtual bool isPersistentVariable() = 0;
@@ -29,7 +29,7 @@ public:
       }
     }
   };
-  
+
   String getTag(const String& varName){
     return getPrefix() + "." + varName;
   }
@@ -53,7 +53,7 @@ public:
     }
     return result;
   }
-  
+
   String toString(){
     String result = "";
     int size = getMapperLength();
@@ -64,7 +64,7 @@ public:
     }
     return result;
   }
-  
+
   virtual String getPrefix() = 0;
   virtual IStringConvertibleVariable** getMapper() = 0;
   virtual int getMapperLength() = 0;
@@ -84,7 +84,7 @@ public:
     this->getter = getter;
     this->config = config;
   }
-  
+
   bool isPersistentVariable(){
     return (type() == Types::PERSISTENT_VAR);
   }
@@ -108,10 +108,10 @@ public:
   String getName(){
     return name;
   }
-  
+
   String name;
   setterPtr setter;
-  getterPtr getter;  
+  getterPtr getter;
   static int persistentVariablesSize;
   static bool eepromWasInitialized;
   Config* config;
@@ -141,7 +141,7 @@ public:
       initEEPROM();
       StringConvertibleVariable::eepromWasInitialized = true;
     }
-    
+
     isString = std::is_same<T, String>::value;
     address = StringConvertibleVariable::persistentVariablesSize;
     StringConvertibleVariable::persistentVariablesSize += isString? STR_SIZE : sizeof(*variable);
@@ -180,7 +180,7 @@ public:
 //        Serial.println(r);
         if (r == '\0')
           break;
-        
+
         res += String(r);
       }
       *((String*)Variable<T>::variable) = res;
@@ -190,7 +190,7 @@ public:
     EEPROM.end();
     Serial.println(String("Variable ") + Variable<T>::name + " read. -> " + String(*Variable<T>::variable));
   }
-  
+
   virtual void persist(){
 //    Serial.println(String("starting address = ") + String(address));
     EEPROM.begin(512);
@@ -214,15 +214,15 @@ public:
   virtual Type::Types type(){
     return Type::Types::PERSISTENT_VAR;
   }
-  
+
   int address;
 };
 
 
 
 //-------------------------
-#define VA_NUM_ARGS(...) VA_NUM_ARGS_IMPL(__VA_ARGS__, 10,9,8,7,6,5,4,3,2,1)
-#define VA_NUM_ARGS_IMPL(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,N,...) N
+#define VA_NUM_ARGS(...) VA_NUM_ARGS_IMPL(__VA_ARGS__, 18,17,16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1)
+#define VA_NUM_ARGS_IMPL(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,_17,_18,N,...) N
 
 #define var(type,name,setBody,getBody)\
 private:\
@@ -255,7 +255,7 @@ type name; setterHeader(name,{}); getterHeader(name,getBody);
 
 //---------------------------
 
-#define FE_1(WHAT, X)       WHAT(X) 
+#define FE_1(WHAT, X)       WHAT(X)
 #define FE_2(WHAT, X, ...)  WHAT(X)FE_1(WHAT, __VA_ARGS__)
 #define FE_3(WHAT, X, ...)  WHAT(X)FE_2(WHAT, __VA_ARGS__)
 #define FE_4(WHAT, X, ...)  WHAT(X)FE_3(WHAT, __VA_ARGS__)
@@ -265,12 +265,20 @@ type name; setterHeader(name,{}); getterHeader(name,getBody);
 #define FE_8(WHAT, X, ...)  WHAT(X)FE_7(WHAT, __VA_ARGS__)
 #define FE_9(WHAT, X, ...)  WHAT(X)FE_8(WHAT, __VA_ARGS__)
 #define FE_10(WHAT, X, ...) WHAT(X)FE_9(WHAT, __VA_ARGS__)
+#define FE_11(WHAT, X, ...) WHAT(X)FE_10(WHAT, __VA_ARGS__)
+#define FE_12(WHAT, X, ...) WHAT(X)FE_11(WHAT, __VA_ARGS__)
+#define FE_13(WHAT, X, ...) WHAT(X)FE_12(WHAT, __VA_ARGS__)
+#define FE_14(WHAT, X, ...) WHAT(X)FE_13(WHAT, __VA_ARGS__)
+#define FE_15(WHAT, X, ...) WHAT(X)FE_14(WHAT, __VA_ARGS__)
+#define FE_16(WHAT, X, ...) WHAT(X)FE_15(WHAT, __VA_ARGS__)
+#define FE_17(WHAT, X, ...) WHAT(X)FE_16(WHAT, __VA_ARGS__)
+#define FE_18(WHAT, X, ...) WHAT(X)FE_17(WHAT, __VA_ARGS__)
 //... repeat as needed
 
-#define GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,NAME,...) NAME 
+#define GET_MACRO(_1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12,_13,_14,_15,_16,_17,_18,NAME,...) NAME
 #define FOR_EACH(action,...) \
-  GET_MACRO(__VA_ARGS__,FE_10,FE_9,FE_8,FE_7,FE_6,FE_5,FE_4,FE_3,FE_2,FE_1)(action,__VA_ARGS__)
-  
+  GET_MACRO(__VA_ARGS__,FE_18,FE_17,FE_16,FE_15,FE_14,FE_13,FE_12,FE_11,FE_10,FE_9,FE_8,FE_7,FE_6,FE_5,FE_4,FE_3,FE_2,FE_1)(action,__VA_ARGS__)
+
 //--------------------------
 
 
@@ -346,10 +354,3 @@ String getPrefix(){\
 __VA_ARGS__\
 \
 };
-
-
-
-
-  
-
-
