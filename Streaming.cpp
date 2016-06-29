@@ -204,7 +204,7 @@ Frame* Streaming::frameToPlay(){
     times++;
     buffer.erase(buffer.begin());
     updateBufferStat();
-  } else if U32_TIME_GREATER_THAN(currentTime, packetTime + 1){
+  } else if (U32_TIME_GREATER_THAN(currentTime, packetTime + 1)) {
     Serial.printf("Frame delayed!! %i, %lu, %lu, %lu\n", frame->isGeneratedFrame, currentTime - (packetTime + 1), currentTime, (packetTime + 1));
     times++;
     delayedPackets++;

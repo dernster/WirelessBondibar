@@ -295,24 +295,24 @@ DefineConfig( Stats,
     return String(config,4);
   })
 
-  readOnly( float, ptFrameRateMean,
+  readOnly( double, ptFrameRateMean,
   {
-    return String(config,4);
+    return String(config, 5);
   })
 
-  readOnly( float, ptFrameRateStdev,
+  readOnly( double, ptFrameRateStdev,
   {
-    return String(config,4);
+    return String(config, 5);
   })
 
-  readOnly( float, ptFrameRateMax,
+  readOnly( double, ptFrameRateMax,
   {
-    return String(config,4);
+    return String(config, 5);
   })
 
-  readOnly( float, ptFrameRateMin,
+  readOnly( double, ptFrameRateMin,
   {
-    return String(config,4);
+    return String(config, 5);
   })
 
   readOnly( bool, dirty,

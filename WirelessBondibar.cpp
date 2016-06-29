@@ -107,7 +107,9 @@ void setup() {
 //-------------------------------------------------
 
 unsigned long packetsPlayedQty = 0, lastPacketPlaybackRawTime = 0, packetPlaybackDiffSum = 0
-            , packetPlaybackDiffSumPow = 0, previousPacketSeq = 0;
+            , packetPlaybackDiffSumPow = 0;
+byte previousPacketSeq = 0;
+bool previousWasGenerated = false;
 bool value = true;
 void loop() {
 
@@ -142,7 +144,8 @@ void loop() {
       // if (playFrame->isGeneratedFrame)
       //   Serial.println("PLAYED A GENERATED FRAME!");
 
-      if (packetsPlayedQty > 0 && previousPacketSeq + 1 == playFrame->seq) {
+      if (packetsPlayedQty > 0 && previousPacketSeq + 1 == playFrame->seq && !previousWasGenerated && !playFrame->isGeneratedFrame) {
+
         unsigned long currentDifference = currentFrameRawPt - lastPacketPlaybackRawTime;
 
         if (currentDifference > modules->configuration->Stats->ptFrameRateMax) {
@@ -150,20 +153,23 @@ void loop() {
           modules->configuration->Stats->ptFrameRateMax = currentDifference;
         }
 
-        if (currentDifference < modules->configuration->Stats->ptFrameRateMin){
+        if (currentDifference < modules->configuration->Stats->ptFrameRateMin) {
           // Serial.printf("MIN: %lu %i %i\n", currentDifference, previousPacketSeq, playFrame->seq);
           modules->configuration->Stats->ptFrameRateMin = currentDifference;
         }
 
         packetPlaybackDiffSum += currentDifference;
-        packetPlaybackDiffSumPow += pow(currentFrameRawPt - lastPacketPlaybackRawTime, 2);
-        modules->configuration->Stats->ptFrameRateMean = packetPlaybackDiffSum / packetsPlayedQty;
+        packetPlaybackDiffSumPow += ((unsigned long) pow(currentDifference, 2));
+        modules->configuration->Stats->ptFrameRateMean = (double)packetPlaybackDiffSum / (double)(packetsPlayedQty + 1);
         modules->configuration->Stats->ptFrameRateStdev = sqrt(
-          (packetPlaybackDiffSumPow / packetsPlayedQty) - pow(modules->configuration->Stats->ptFrameRateMean, 2));
+          ((double)packetPlaybackDiffSumPow / (double)packetsPlayedQty) - pow((double)packetPlaybackDiffSum / (double)packetsPlayedQty, 2));
+
+        packetsPlayedQty++;
+      } else if (packetsPlayedQty == 0) {
+        packetsPlayedQty++;
       }
 
-      packetsPlayedQty++;
-
+      previousWasGenerated = playFrame->isGeneratedFrame;
       previousPacketSeq = playFrame->seq;
       lastPacketPlaybackRawTime = currentFrameRawPt;
       delete playFrame;
