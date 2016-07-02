@@ -29,7 +29,6 @@ void Streaming::setup(){
     delete [] dataBuffer;
   }
   dataBuffer = new byte[packetSize];
-  // Serial.println(String("dataBuffer size = ") + String(packetSize));
   active = true;
 }
 
@@ -81,12 +80,16 @@ bool Streaming::frame(){
   return packetIsThere;
 }
 
+#define CALIBRATION_PACKETS_PRINT_INTERVAL (30)
 void Streaming::bufferFrame(){
+  static int calibrationPacketsPrintIntervalCount = CALIBRATION_PACKETS_PRINT_INTERVAL;
+  static bool ledState = true;
   static bool waitingForSyncFrame = true;
   static bool firstFrame = true;
   static byte expectedSeq = 0;
   static unsigned long totalReceivedPackets = 0;
   static unsigned long lostPackets = 0;
+  static unsigned long latePackets = 0;
 
   int size = udp.read(dataBuffer, packetSize);
   bytesReceived += size + 8 + 20 + 14;
@@ -109,15 +112,26 @@ void Streaming::bufferFrame(){
   bool isValid = clock->updateServerOffset(frame);
 
   if (!isValid){
+
+    calibrationPacketsPrintIntervalCount--;
+    if (calibrationPacketsPrintIntervalCount == 0) {
+      digitalWrite(LED, ledState = !ledState);
+      calibrationPacketsPrintIntervalCount = CALIBRATION_PACKETS_PRINT_INTERVAL;
+    }
+
     delete frame;
     return;
+  } else {
+    digitalWrite(LED, 1); /* turn off led */
   }
 
   totalReceivedPackets++;
 
   unsigned long curr_time = clock->time();
   if (U32_TIME_GREATER_THAN(curr_time, playbackTime)) {
-    Serial.printf("A frame arrived too late: %lu\n", curr_time - playbackTime);
+    latePackets++;
+    configuration->Stats->latePacketsRate = (float)latePackets / ((float)totalReceivedPackets + (float)lostPackets);
+    // Serial.printf("A frame arrived too late: %lu\n", curr_time - playbackTime);
     delete frame;
     return;
   }

@@ -257,6 +257,7 @@ DefineConfig( Stats,
     ptFrameRateStdev = 0;
     ptFrameRateMax = 0;
     ptFrameRateMin = 999999999;
+    latePacketsRate = 0;
     dirty = false;
   }
 
@@ -320,6 +321,11 @@ DefineConfig( Stats,
     return config ? "True" : "False";
   })
 
+  readOnly( double, latePacketsRate,
+  {
+    return String(config, 5);
+  })
+
   expose(
       bitRate,
       streamingQueueMeanSize,
@@ -332,7 +338,8 @@ DefineConfig( Stats,
       ptFrameRateStdev,
       ptFrameRateMax,
       ptFrameRateMin,
-      dirty
+      dirty,
+      latePacketsRate
     );
 );
 

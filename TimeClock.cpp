@@ -122,6 +122,7 @@ bool TimeClock::updateServerOffset(Frame* frame){
    */
 
   if (expirationPeriodIndex == 0) {
+    Serial.printf("Calibrating...Finished!\n");
     /* multiplier was never calculated */
     correction = serverOffset.sample;
     expirationPeriodIndex = ((double)time()/(double)EXPIRATION_PERIOD) + 1;
