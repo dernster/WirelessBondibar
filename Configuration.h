@@ -247,8 +247,8 @@ DefineConfig( Stats,
 
   _Stats(){
     bitRate = 0;
-    streamingQueueMeanSize = 0;
-    streamingQueueMaxSize = 0;
+    streamingQueueMeanWaitingTime = 0;
+    streamingQueueWaitingTimeStdev = 0;
     playbackMeanDelay = 0;
     playbackMaxDelay = 0;
     packetLossRate = 0;
@@ -266,14 +266,14 @@ DefineConfig( Stats,
     return String(config,4); // kbps
   })
 
-  readOnly( float, streamingQueueMeanSize,
+  readOnly( double, streamingQueueWaitingTimeStdev,
   {
-    return String(config,4); // frames
+    return String(config,5);
   })
 
-  readOnly( int, streamingQueueMaxSize,
+  readOnly( double, streamingQueueMeanWaitingTime,
   {
-    return String(config);
+    return String(config, 5);
   })
 
   readOnly( float, playbackMeanDelay,
@@ -328,8 +328,8 @@ DefineConfig( Stats,
 
   expose(
       bitRate,
-      streamingQueueMeanSize,
-      streamingQueueMaxSize,
+      streamingQueueMeanWaitingTime,
+      streamingQueueWaitingTimeStdev,
       playbackMeanDelay,
       playbackMaxDelay,
       packetLossRate,

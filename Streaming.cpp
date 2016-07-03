@@ -242,16 +242,16 @@ Frame* Streaming::frameToPlay(){
 
 void Streaming::updateBufferStat(){
   static unsigned long qty = 0;
-  static unsigned long sizes = 0;
+  static double sizes = 0;
 
-  qty++;
-  sizes += buffer.size();
-
-  configuration->Stats->streamingQueueMeanSize = (float)sizes/(float)qty;
-
-  if (buffer.size() > configuration->Stats->streamingQueueMaxSize){
-    configuration->Stats->streamingQueueMaxSize = buffer.size();
-  }
+  // qty++;
+  // sizes += buffer.size();
+  //
+  // configuration->Stats->streamingQueueMeanSize = (float)sizes/(float)qty;
+  //
+  // if (buffer.size() > configuration->Stats->streamingQueueMaxSize){
+  //   configuration->Stats->streamingQueueMaxSize = buffer.size();
+  // }
 }
 
 Streaming::~Streaming(){

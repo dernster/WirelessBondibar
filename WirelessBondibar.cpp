@@ -111,6 +111,12 @@ unsigned long packetsPlayedQty = 0, lastPacketPlaybackRawTime = 0, packetPlaybac
 byte previousPacketSeq = 0;
 bool previousWasGenerated = false;
 bool value = true;
+
+/* waiting time in bufer statistic */
+unsigned long playedFramesWaitingTimeSum = 0;
+unsigned long playedFramesWaitingTimeSumPow = 0;
+unsigned long playedFramesQty = 0;
+
 void loop() {
 
   // move pin in specific times
@@ -172,6 +178,18 @@ void loop() {
       previousWasGenerated = playFrame->isGeneratedFrame;
       previousPacketSeq = playFrame->seq;
       lastPacketPlaybackRawTime = currentFrameRawPt;
+
+      /* waiting time statistics */
+      if (!playFrame->isGeneratedFrame) {
+        playedFramesQty++;
+        unsigned long waitingTime = (currentFrameRawPt - playFrame->arriveTime);
+        playedFramesWaitingTimeSum += waitingTime;
+        playedFramesWaitingTimeSumPow += ((unsigned long) pow(waitingTime, 2));
+        modules->configuration->Stats->streamingQueueWaitingTimeStdev = sqrt(
+          ((double)playedFramesWaitingTimeSumPow / (double)playedFramesQty) - pow((double)playedFramesWaitingTimeSum / (double)playedFramesQty, 2));
+        modules->configuration->Stats->streamingQueueMeanWaitingTime = (double)playedFramesWaitingTimeSum / (double)playedFramesQty;
+      }
+
       delete playFrame;
 
   }else if (modules->controlServer->incomingCommand()){
